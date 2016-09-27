@@ -34,6 +34,7 @@ make install
 
 The alignments are done using bowtie2, so a bowtie2 index must be prepared for the human and viral references. The script will expect these indexes to either be in a directory pointed to by the environment variable $BOWTIE2_INDEXES or in $HOME/BOWTIE2_INDEXES.
 
+For example ...
 ```BASH
 bowtie2-build hg19.fasta hg19
 bowtie2-build herv_k113.fasta herv_k113
