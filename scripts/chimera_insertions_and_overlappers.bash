@@ -20,9 +20,10 @@
 #	Eventually, may want to pass number of cpus or threads so
 #	execs can use the same number.
 
+dir=`dirname $0`
 
 human='hg19'
-viral='hervk113'
+viral='herv_k113'
 threads=2
 
 function usage(){
@@ -66,7 +67,7 @@ base=`basename $PWD`
 
 set -x
 
-{
+#	{
 	echo "Starting at ..."
 	date
 
@@ -124,8 +125,7 @@ set -x
 	#		ie ({4}, {4,}, {4,6])
 	#	Need a newer version or add the --posix option
 
-	dir=`dirname $0`
-	samtools view -h -F 4 $1 | \
+	samtools view -h -F 4 $base.bam | \
 		gawk -v base=$base -v out="fasta" \
 			-f "$dir/chimera_samtools_extract_and_clip_chimeric_reads.gawk"
 	#	-> pre.fasta
@@ -171,7 +171,7 @@ set -x
 		samtools view -q $q -F 20 $base.post.bowtie2.$human.sam \
 			| awk '{print $3"|"$4}' \
 			| sort > $base.post.bowtie2.$human.$mapq.insertion_points
-		chimera_positions_within_10bp.bash $base.*.bowtie2.$human.$mapq.insertion_points \
+		$dir/chimera_positions_within_10bp.bash $base.*.bowtie2.$human.$mapq.insertion_points \
 			| sort | uniq -c > $base.both.bowtie2.$human.$mapq.insertion_points.overlappers
 
 		samtools view -q $q -F 4 -f 16 $base.pre.bowtie2.$human.sam \
@@ -180,7 +180,7 @@ set -x
 		samtools view -q $q -F 4 -f 16 $base.post.bowtie2.$human.sam \
 			| awk '{print $3"|"$4+length($10)}' \
 			| sort > $base.post.bowtie2.$human.$mapq.rc_insertion_points
-		chimera_positions_within_10bp.bash $base.*.bowtie2.$human.$mapq.rc_insertion_points \
+		$dir/chimera_positions_within_10bp.bash $base.*.bowtie2.$human.$mapq.rc_insertion_points \
 			| sort | uniq -c > $base.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
 
 	done
@@ -195,4 +195,4 @@ set -x
 	echo "Finished at ..."
 	date
 
-} 1>>$base.`basename $0`.out 2>&1
+#	} 1>>$base.`basename $0`.out 2>&1

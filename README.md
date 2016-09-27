@@ -13,6 +13,10 @@ running bash-4.4.0, gawk-4.1.4, bowtie2-2.2.7 and samtools 1.2 (using htslib 1.2
 
 ## Installation
 
+These scripts can be run from whereever they are. 
+They don't need to be installed.
+However, should you wish to install them in ~/.local/bin/ or elsewhere ...
+
 Link or copy Makefile.example and edit as appropriate.
 
 ```

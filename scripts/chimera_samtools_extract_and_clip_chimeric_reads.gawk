@@ -5,12 +5,6 @@
 
 #	--posix NEEDS to be AFTER any -v settings!
 
-#	$cmd | awk -v base=$base -v out=$out --posix '
-
-
-#	UNTESTED SINCE EXTRACTION
-
-
 BEGIN {
 	pre_out=sprintf("%s.pre.%s",base,out)
 	post_out=sprintf("%s.post.%s",base,out)
@@ -19,7 +13,7 @@ BEGIN {
 
 ( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4) }
 
-#( ( $6 ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( $4 <= 5 ) && ( $3 ~ /beginning/ ) ){
+#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
 ( ( $6 ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( $4 <= 5 ) ){
 	split($6,a,"S")
 	clip=a[1]-$4+1
@@ -34,9 +28,8 @@ BEGIN {
 	}
 }
 
-#( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - (length($10)*0.9) ) ) && ( $3 ~ /ending/ ) ){
-#( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - (length($10)*0.9) ) ) ){
-( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - length($10) - 5 ) ) ){
+#	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
+( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - length($10) + 5 ) ) ){
 	clip=ref[$3]-$4+2
 	if( out == "fastq" ){
 		print "@"$1"_post" >> post_out
@@ -47,7 +40,7 @@ BEGIN {
 		print ">"$1"_post" >> post_out
 		print substr($10,clip) >> post_out
 	}
-}'
+}
 
 #	Sam file columns
 #	1 QNAME String Query template NAME
