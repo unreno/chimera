@@ -5,7 +5,7 @@ The purpose of these scripts is to locate the insertion points of one reference 
 This is done by aligning a collection of reads to a reference, usually viral, and selecting those reads that soft aligned at and past the ends. 
 We call this type of a read "chimeric" and can be at the beginning (pre) or ending (post) of the reference.
 The part of the read that aligned is removed and new fasta files are created containing these chimeric reads.
-These fasta files are the aligned to the second reference, usually human, and the insertion points are extracted.
+These fasta files are the aligned to the second reference, usually human, and the insertion points, the aligned position at which the initial read was snipped, are extracted.
 The pre and post aligned insertion points are then compared and any within 10bp are considered an overlapper and are suggestive of a novel insertion of the first reference within the second.
 
 
