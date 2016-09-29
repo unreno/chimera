@@ -63,6 +63,28 @@ done
 [ $# -gt 2 -o $# -eq 0 ] && usage
 
 
+function positions_within_10bp(){
+	for line in `cat $1` ; do
+		#	echo "line:" $line
+		chr=${line%%|*}	#	remove everything after first pipe (including pipe)
+		#	echo "chr: " $chr
+		line=${line#*|}	#	remove everything before first pipe (including pipe)
+		#	echo "line:" $line
+		pos=${line%%|*}	#	remove everything after first pipe (including pipe)
+		#	echo "pos: " $pos
+
+		#	Expecting file content format like so ...
+		#	chrY|6616930|
+
+		awk -F\| -v chr="$chr" -v pos="$pos" '
+			( ( $1 == chr ) && ( (pos-10) < $NF ) && ( (pos+10) > $NF ) ){
+				print
+			}' $2
+
+	done
+}
+
+
 base=`basename $PWD`
 
 set -x
@@ -93,11 +115,14 @@ set -x
 		files="-U $1,$2"
 	fi
 
-	core="bowtie2.$viral.__very_sensitive_local"
+	base="$base.bowtie2.$viral.__very_sensitive_local"
 
-	base="$base.$core"
+	#	I think that using --all here would be a good idea, theoretically.
+	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
+	#	I did try and compare and the final results were identical.
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype $files -S $base.sam
+
 	status=$?
 	if [ $status -ne 0 ] ; then
 		date
@@ -105,7 +130,8 @@ set -x
 		exit $status
 	fi
 
-	samtools view -b -S -F 4 -o $base.aligned.bam $base.sam
+	#samtools view -b -S -F 4 -o $base.aligned.bam $base.sam
+	samtools view -b -F 4 -o $base.aligned.bam $base.sam
 	rm $base.sam
 
 	base="$base.aligned"
@@ -114,20 +140,57 @@ set -x
 	#	${VARIABLE^^} converts to uppercase
 	#	${VARIABLE,,} converts to lowercase
 
-	#	
+	#
 	#	Find alignments that align past the appropriate end of the ends of the ltr.
 	#
 	#    f4 = unmapped
 	#    F4 = NOT unmapped = mapped
 	#    F8 = mate NOT unmapped = mate mapped
 	#
-	#	Older versions of awk do not directly support "interval expressions", 
+	#	Older versions of awk do not directly support "interval expressions",
 	#		ie ({4}, {4,}, {4,6])
 	#	Need a newer version or add the --posix option
 
-	samtools view -h -F 4 $base.bam | \
-		gawk -v base=$base -v out="fasta" \
-			-f "$dir/chimera_samtools_extract_and_clip_chimeric_reads.gawk"
+#	samtools view -h -F 4 $base.bam | \
+#		gawk -v base=$base -v out="fasta" \
+#			-f "$dir/chimera_samtools_extract_and_clip_chimeric_reads.gawk"
+	samtools view -h -F 4 $base.bam | gawk -v base=$base \
+		'BEGIN {
+			pre_out=sprintf("%s.pre.fasta",base)
+			post_out=sprintf("%s.post.fasta",base)
+		}
+		( ( NR % 10000 ) == 0 ){ print "Read "NR" records" }
+
+		( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4) }
+
+		#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
+		( ( $6 ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( $4 <= 5 ) ){
+			split($6,a,"S")
+			clip=a[1]-$4+1
+			if( out == "fastq" ){
+				print "@"$1"_pre" >> pre_out
+				print substr($10,1,clip) >> pre_out
+				print "+" >> pre_out
+				print substr($11,1,clip) >> pre_out
+			} else {
+				print ">"$1"_pre" >> pre_out
+				print substr($10,1,clip) >> pre_out
+			}
+		}
+
+		#	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
+		( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - length($10) + 5 ) ) ){
+			clip=ref[$3]-$4+2
+			if( out == "fastq" ){
+				print "@"$1"_post" >> post_out
+				print substr($10,clip) >> post_out
+				print "+" >> post_out
+				print substr($11,clip) >> post_out
+			} else {
+				print ">"$1"_post" >> post_out
+				print substr($10,clip) >> post_out
+			}
+		}'
 	#	-> pre.fasta
 	#	-> post.fasta
 
@@ -171,7 +234,8 @@ set -x
 		samtools view -q $q -F 20 $base.post.bowtie2.$human.sam \
 			| awk '{print $3"|"$4}' \
 			| sort > $base.post.bowtie2.$human.$mapq.insertion_points
-		$dir/chimera_positions_within_10bp.bash $base.*.bowtie2.$human.$mapq.insertion_points \
+#		$dir/chimera_positions_within_10bp.bash $base.*.bowtie2.$human.$mapq.insertion_points \
+		positions_within_10bp $base.*.bowtie2.$human.$mapq.insertion_points \
 			| sort | uniq -c > $base.both.bowtie2.$human.$mapq.insertion_points.overlappers
 
 		samtools view -q $q -F 4 -f 16 $base.pre.bowtie2.$human.sam \
@@ -180,15 +244,18 @@ set -x
 		samtools view -q $q -F 4 -f 16 $base.post.bowtie2.$human.sam \
 			| awk '{print $3"|"$4+length($10)}' \
 			| sort > $base.post.bowtie2.$human.$mapq.rc_insertion_points
-		$dir/chimera_positions_within_10bp.bash $base.*.bowtie2.$human.$mapq.rc_insertion_points \
+#		$dir/chimera_positions_within_10bp.bash $base.*.bowtie2.$human.$mapq.rc_insertion_points \
+		positions_within_10bp $base.*.bowtie2.$human.$mapq.rc_insertion_points \
 			| sort | uniq -c > $base.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
 
 	done
 
-	samtools view -S -b -o $base.pre.bowtie2.$human.bam  $base.pre.bowtie2.$human.sam
+#	samtools view -S -b -o $base.pre.bowtie2.$human.bam  $base.pre.bowtie2.$human.sam
+	samtools view -b -o $base.pre.bowtie2.$human.bam  $base.pre.bowtie2.$human.sam
 	rm $base.pre.bowtie2.$human.sam
 
-	samtools view -S -b -o $base.post.bowtie2.$human.bam $base.post.bowtie2.$human.sam
+#	samtools view -S -b -o $base.post.bowtie2.$human.bam $base.post.bowtie2.$human.sam
+	samtools view -b -o $base.post.bowtie2.$human.bam $base.post.bowtie2.$human.sam
 	rm $base.post.bowtie2.$human.sam
 
 	echo
