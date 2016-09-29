@@ -58,6 +58,34 @@ If these scripts have not been installed to a directory in your path, prefix the
 
 ```BASH
 cd SOME/SAMPLE
-chimera_insertions_and_overlappers.bash --human hg19 --viral HCMV Sample_1.fastq Sample_2.fastq
+chimera_insertions_and_overlappers.bash --viral HCMV --human hg19 Sample_1.fastq Sample_2.fastq
+```
+
+will generate
+
+```BASH
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.bam
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.fasta
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.fasta
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.bam
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.bam
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q20.insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q20.insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q20.rc_insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q20.rc_insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q20.insertion_points.overlappers
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q20.rc_insertion_points.rc_overlappers
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q10.insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q10.insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q10.rc_insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q10.rc_insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q10.insertion_points.overlappers
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q10.rc_insertion_points.rc_overlappers
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q00.insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q00.insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q00.rc_insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q00.rc_insertion_points
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q00.insertion_points.overlappers
+SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q00.rc_insertion_points.rc_overlappers
 ```
 
