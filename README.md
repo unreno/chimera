@@ -15,7 +15,9 @@ The pre and post aligned insertion points are then compared and any within 10bp 
 ##	Requirements
 
 These scripts were written for use in a Unix/Linux/MacOSX environment
-running bash-4.4.0, gawk-4.1.4, bowtie2-2.2.7 and samtools 1.2 (using htslib 1.2.1).
+running bash-4.4.0, gawk-4.1.4,
+[bowtie2](https://github.com/BenLangmead/bowtie2) 2.2.7 and
+[samtools](https://github.com/samtools/samtools) 1.2 (using htslib 1.2.1).
 
 
 
