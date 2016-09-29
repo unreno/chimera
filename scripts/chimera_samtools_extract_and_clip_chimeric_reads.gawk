@@ -13,6 +13,9 @@ BEGIN {
 
 ( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4) }
 
+#	Old way for testing.
+#( ( $6 ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( $4 <= 5 ) && ( $3 ~ /beginning/ ) ){
+
 #	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
 ( ( $6 ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( $4 <= 5 ) ){
 	split($6,a,"S")
@@ -27,6 +30,9 @@ BEGIN {
 		print substr($10,1,clip) >> pre_out
 	}
 }
+
+#	Old for testing
+#( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - (length($10)*0.9) ) ) && ( $3 ~ /ending/ ) ){
 
 #	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
 ( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - length($10) + 5 ) ) ){
