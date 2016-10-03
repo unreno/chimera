@@ -58,7 +58,6 @@ done
 
 
 #       Basically, this is TRUE AND DO ...
-#[ $# -gt 2 -o $# -eq 0 ] && usage
 [ $# -eq 0 ] && usage
 
 
@@ -94,9 +93,6 @@ function positions_within_10bp(){
 		pos=${line%%|*}	#	remove everything after first pipe (including pipe)
 		#	echo "pos: " $pos    #	74554211 or 790825
 
-#	This wouldn't work in third format
-#			( ( $1 == chr ) && ( (pos-10) < $NF ) && ( (pos+10) > $NF ) ){
-
 		#	Print out the lines with the same reference chromosome
 		#		and a position within 10bp in either direction.
 		awk -F\| -v chr="$chr" -v pos="$pos" '
@@ -128,20 +124,10 @@ set -x
 	export BOWTIE2_INDEXES
 
 	#	One line "if-then-else" to determine filetype by last character of first file name.
-	#	[[ ${1:(-1)} == 'q' ]] && filetype='-q' || filetype='-f'
-	[ ${1:(-1)} == 'q' ] && filetype='-q' || filetype='-f'
-
-	#	One line "if-then-else to set files list for bowtie2 call.
-	#[ $# -eq 1 ] && files="-U $1" || files="-U $1,$2"
+	[ "${1:(-1)}" == 'q' ] && filetype='-q' || filetype='-f'
 
 	#	Create a string of all files to be passed to bowtie2
 	files=$(echo $* | awk '{printf "-U ";for(i=1;i<NF;i++){printf "%s,",$i};print $NF}')
-
-#	if [ $# -eq 1 ] ; then
-#		files="-U $1"
-#	else
-#		files="-U $1,$2"
-#	fi
 
 	base="$base.bowtie2.$viral.__very_sensitive_local"
 
@@ -152,8 +138,7 @@ set -x
 		$filetype $files -S $base.sam
 
 #		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
-
-#	samtools does not seem to process STDIN pipe
+#	samtools does not seem to process STDIN pipe, so can't do that.
 
 #	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
 #	That would remove the need to convert and delete later.
@@ -228,11 +213,11 @@ set -x
 	#	-> post.fasta
 
 
-	for relation in pre post ; do
+	for pre_or_post in pre post ; do
 
 		#	Align the chimeric reads to the human reference.
-		bowtie2 -x $human --threads $threads -f $base.$relation.fasta \
-			-S $base.$relation.bowtie2.$human.sam
+		bowtie2 -x $human --threads $threads -f $base.$pre_or_post.fasta \
+			-S $base.$pre_or_post.bowtie2.$human.sam
 		status=$?
 		if [ $status -ne 0 ] ; then
 			date
@@ -241,20 +226,11 @@ set -x
 		fi
 
 		#	Convert to bam and remove the sam.
-		samtools view -b -o $base.$relation.bowtie2.$human.bam \
-			$base.$relation.bowtie2.$human.sam
-		rm $base.$relation.bowtie2.$human.sam
+		samtools view -b -o $base.$pre_or_post.bowtie2.$human.bam \
+			$base.$pre_or_post.bowtie2.$human.sam
+		rm $base.$pre_or_post.bowtie2.$human.sam
 
 	done
-
-#	bowtie2 -x $human --threads $threads -f $base.post.fasta \
-#		-S $base.post.bowtie2.$human.sam
-#	status=$?
-#	if [ $status -ne 0 ] ; then
-#		date
-#		echo "bowtie failed with $status"
-#		exit $status
-#	fi
 
 	#	find insertion points
 	#	then find those with the signature overlap
@@ -290,12 +266,6 @@ set -x
 			| sort | uniq -c > $base.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
 
 	done
-
-#	samtools view -b -o $base.pre.bowtie2.$human.bam  $base.pre.bowtie2.$human.sam
-#	rm $base.pre.bowtie2.$human.sam
-#
-#	samtools view -b -o $base.post.bowtie2.$human.bam $base.post.bowtie2.$human.sam
-#	rm $base.post.bowtie2.$human.sam
 
 	echo
 	echo "Finished at ..."
