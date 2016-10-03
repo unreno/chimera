@@ -135,7 +135,7 @@ set -x
 	#[ $# -eq 1 ] && files="-U $1" || files="-U $1,$2"
 
 	#	Create a string of all files to be passed to bowtie2
-	files=$(echo $* | awk 'BEGIN{OFS=","}{printf "-U ";for(i=1;i<NF;i++){printf "%s,",$i};print $NF}')
+	files=$(echo $* | awk '{printf "-U ";for(i=1;i<NF;i++){printf "%s,",$i};print $NF}')
 
 #	if [ $# -eq 1 ] ; then
 #		files="-U $1"
