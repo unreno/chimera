@@ -143,8 +143,6 @@ set -x
 #		files="-U $1,$2"
 #	fi
 
-
-
 	base="$base.bowtie2.$viral.__very_sensitive_local"
 
 	#	I think that using --all here would be a good idea, theoretically.
@@ -153,7 +151,11 @@ set -x
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype $files -S $base.sam
 
-#	I could let the output go to STDOUT then pipe to samtools view -b -o $base.bam
+#		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
+
+#	samtools does not seem to process STDIN pipe
+
+#	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
 #	That would remove the need to convert and delete later.
 #	Would save on disk space if that's an issue.
 #	May require more memory to do the pipe processing though.
