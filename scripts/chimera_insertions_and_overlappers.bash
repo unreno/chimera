@@ -40,6 +40,12 @@ function usage(){
 	echo
 	echo "Note: all output files will be based on the working directory's name"
 	echo
+	echo "Note: fastq files can be gzipped (.gz) or bzipped (.bz2),"
+	echo " but MUST be separated by commas without white space."
+	echo "They will be passed directly to bowtie2 as such."
+	echo "For example:"
+	echo "  a.fastq.gz,b.fastq.gz"
+	echo
 	exit
 }
 
@@ -127,6 +133,8 @@ set -x
 
 	#	One line "if-then-else" to determine filetype by last character of first file name.
 	[ "${1:(-1)}" == 'q' ] && filetype='-q' || filetype='-f'
+#	[ "${1:(-1)}" == "q" -o "${1:(-5)}" == "q.bz2" -o "${1:(-4)}" == "q.gz" ] \
+#		&& filetype='-q' || filetype='-f'
 
 	#	Create a string of all files to be passed to bowtie2
 	files=$(echo $* | awk '{printf "-U ";for(i=1;i<NF;i++){printf "%s,",$i};print $NF}')
@@ -249,7 +257,7 @@ set -x
 	for pre_or_post in pre post ; do
 
 		#	Align the chimeric reads to the human reference.
-		bowtie2 -x $human --threads $threads -f $base.$pre_or_post.fasta \
+		bowtie2 -x $human --threads $threads -f -U $base.$pre_or_post.fasta \
 			-S $base.$pre_or_post.bowtie2.$human.sam
 		status=$?
 		if [ $status -ne 0 ] ; then
