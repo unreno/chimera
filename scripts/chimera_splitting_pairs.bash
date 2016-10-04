@@ -47,6 +47,10 @@ function usage(){
 	echo "For example:"
 	echo "  a_1.fastq.gz,b_1.fastq.gz a_2.fastq.gz,b_2.fastq.gz"
 	echo
+	echo "WARNING:"
+	echo "  bowtie2 DOES NOT base pairs on NAMES, it bases them on POSITION in file."
+	echo "  ie. The first read in each file are considered a pair."
+	echo
 	exit
 }
 
@@ -128,7 +132,7 @@ set -x
 	base=$newbase
 
 	#samtools view $base.bam | awk '{print "@"$1;print $10;print "+";print $11;}' > $base.fastq
-	samtools view $base.bam | awk '{print ">"$1;print $10;}' > $base.fasta
+	samtools view $base.bam | gawk '{l=(and($2,64))?"1":"2";print ">"$1"/"l;print $10;}' > $base.fasta
 
 
 	#
