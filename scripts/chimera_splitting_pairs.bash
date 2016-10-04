@@ -31,7 +31,7 @@ function usage(){
 	echo "Searches for pairs of reads, where one is viral and the other is human."
 	echo "Requires pairs of properly sorted, laned fasta or fastq files."
 	echo
-	echo "`basename $0` [--human STRING] [--viral STRING] [--threads INTEGER] <fastq file(s)>"
+	echo "`basename $0` [--human STRING] [--viral STRING] [--threads INTEGER] <lane 1 fastq file(s)> <lane 2 fastq file(s)>"
 	echo
 	echo "Defaults:"
 	echo "  human ..... : $human"
@@ -39,6 +39,13 @@ function usage(){
 	echo "  threads ... : $threads (for bowtie2)"
 	echo
 	echo "Note: all output files will be based on the working directory's name"
+	echo
+	echo "Note: fastq files can be gzipped (.gz) or bzipped (.bz2),"
+	echo " but MUST be listed in the same order to preserve synchronization"
+	echo " and separated by commas without white space."
+	echo "They will be passed directly to bowtie2 as such."
+	echo "For example:"
+	echo "  a_1.fastq.gz,b_1.fastq.gz a_2.fastq.gz,b_2.fastq.gz"
 	echo
 	exit
 }
@@ -60,15 +67,7 @@ done
 
 
 #       Basically, this is TRUE AND DO ...
-[ $# -eq 0 ] && usage
-
-
-
-
-
-
-echo "STILL IN DEVELOPMENT"
-exit
+[ $# -ne 2 ] && usage
 
 
 
@@ -92,26 +91,13 @@ set -x
 	export BOWTIE2_INDEXES
 
 	#	One line "if-then-else" to determine filetype by last character of first file name.
-	[ "${1:(-1)}" == 'q' ] && filetype='-q' || filetype='-f'
+	[ "${1:(-1)}" == "q" -o "${1:(-5)}" == "q.bz2" -o "${1:(-4)}" == "q.gz" ] \
+		&& filetype='-q' || filetype='-f'
 
-	#	Create a string of all files to be passed to bowtie2
-	files=$(echo $* | awk '{printf "-U ";for(i=1;i<NF;i++){printf "%s,",$i};print $NF}')
+	base="$base.bowtie2.$viral.__very_sensitive"
 
-	base="$base.bowtie2.$viral.__very_sensitive_local"
-
-	#	I think that using --all here would be a good idea, theoretically.
-	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
-	#	I did try and compare and the final results were identical.
-	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-		$filetype $files -S $base.sam
-
-#		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
-#	samtools does not seem to process STDIN pipe, so can't do that.
-
-#	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
-#	That would remove the need to convert and delete later.
-#	Would save on disk space if that's an issue.
-#	May require more memory to do the pipe processing though.
+	bowtie2 --very-sensitive --threads $threads -x $viral \
+		$filetype -1 $1 -2 $2 -S $base.sam
 
 	status=$?
 	if [ $status -ne 0 ] ; then
@@ -136,26 +122,19 @@ set -x
 	#		2048 0x800 SUPPLEMENTARY .. supplementary alignment
 	#
 
-	samtools view -b -F 4 -o $base.aligned.bam $base.sam
+	newbase="$base.unaligned_mate_aligned"
+	samtools view -b -f 4 -F 8 -o $newbase.bam $base.sam
 	rm $base.sam
+	base=$newbase
 
-	base="$base.aligned"
+	#samtools view $base.bam | awk '{print "@"$1;print $10;print "+";print $11;}' > $base.fastq
+	samtools view $base.bam | awk '{print ">"$1;print $10;}' > $base.fasta
 
-	#	requires bash >= 4.0
-	#	${VARIABLE^^} converts to uppercase
-	#	${VARIABLE,,} converts to lowercase
 
-	#
-	#	Find alignments that align past the appropriate end of the ends of the ltr.
 	#
 	#    f4 = unmapped
 	#    F4 = NOT unmapped = mapped
 	#    F8 = mate NOT unmapped = mate mapped
-	#
-	#	Older versions of awk do not directly support "interval expressions",
-	#		ie ({4}, {4,}, {4,6])
-	#	Need a newer version or add the --posix option
-
 	#
 	#	Sam file columns
 	#	1 QNAME String Query template NAME
@@ -171,100 +150,20 @@ set -x
 	#	11 QUAL String
 	#
 
-	samtools view -h -F 4 $base.bam | gawk -v base=$base \
-		'BEGIN {
-			pre_out=sprintf("%s.pre.fasta",base)
-			post_out=sprintf("%s.post.fasta",base)
-		}
-		( ( NR % 10000 ) == 0 ){ print "Read "NR" records" }
+	#	Align the reads to the human reference.
+	bowtie2 -x $human --threads $threads -f -U $base.fasta \
+		-S $base.bowtie2.$human.sam
+	status=$?
+	if [ $status -ne 0 ] ; then
+		date
+		echo "bowtie failed with $status"
+		exit $status
+	fi
 
-		( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4) }
-
-		#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
-		( ( $6 ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( $4 <= 5 ) ){
-			split($6,a,"S")
-			clip=a[1]-$4+1
-			if( out == "fastq" ){
-				print "@"$1"_pre" >> pre_out
-				print substr($10,1,clip) >> pre_out
-				print "+" >> pre_out
-				print substr($11,1,clip) >> pre_out
-			} else {
-				print ">"$1"_pre" >> pre_out
-				print substr($10,1,clip) >> pre_out
-			}
-		}
-
-		#	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
-		( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - length($10) + 5 ) ) ){
-			clip=ref[$3]-$4+2
-			if( out == "fastq" ){
-				print "@"$1"_post" >> post_out
-				print substr($10,clip) >> post_out
-				print "+" >> post_out
-				print substr($11,clip) >> post_out
-			} else {
-				print ">"$1"_post" >> post_out
-				print substr($10,clip) >> post_out
-			}
-		}'
-	#	-> pre.fasta
-	#	-> post.fasta
-
-
-	for pre_or_post in pre post ; do
-
-		#	Align the chimeric reads to the human reference.
-		bowtie2 -x $human --threads $threads -f $base.$pre_or_post.fasta \
-			-S $base.$pre_or_post.bowtie2.$human.sam
-		status=$?
-		if [ $status -ne 0 ] ; then
-			date
-			echo "bowtie failed with $status"
-			exit $status
-		fi
-
-		#	Convert to bam and remove the sam.
-		samtools view -b -o $base.$pre_or_post.bowtie2.$human.bam \
-			$base.$pre_or_post.bowtie2.$human.sam
-		rm $base.$pre_or_post.bowtie2.$human.sam
-
-	done
-
-	#	find insertion points
-	#	then find those with the signature overlap
-
-	#	 f = ALL/YES
-	#	 F = NONE/NOT	(results in double negatives)
-	#	 4 = not aligned
-	#	 8 = mate not aligned
-	#	16 = reverse complement
-
-	echo "Seeking insertion points and overlaps"
-
-	for q in 20 10 00 ; do
-		echo $q
-		mapq="Q${q}"
-
-		samtools view -q $q -F 20 $base.pre.bowtie2.$human.bam \
-			| awk '{print $3"|"$4+length($10)}' \
-			| sort > $base.pre.bowtie2.$human.$mapq.insertion_points
-		samtools view -q $q -F 20 $base.post.bowtie2.$human.bam \
-			| awk '{print $3"|"$4}' \
-			| sort > $base.post.bowtie2.$human.$mapq.insertion_points
-		positions_within_10bp $base.*.bowtie2.$human.$mapq.insertion_points \
-			| sort | uniq -c > $base.both.bowtie2.$human.$mapq.insertion_points.overlappers
-
-		samtools view -q $q -F 4 -f 16 $base.pre.bowtie2.$human.bam \
-			| awk '{print $3"|"$4}' \
-			| sort > $base.pre.bowtie2.$human.$mapq.rc_insertion_points
-		samtools view -q $q -F 4 -f 16 $base.post.bowtie2.$human.bam \
-			| awk '{print $3"|"$4+length($10)}' \
-			| sort > $base.post.bowtie2.$human.$mapq.rc_insertion_points
-		positions_within_10bp $base.*.bowtie2.$human.$mapq.rc_insertion_points \
-			| sort | uniq -c > $base.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
-
-	done
+	#	Convert to bam and remove the sam.
+	samtools view -b -o $base.bowtie2.$human.bam \
+		$base.bowtie2.$human.sam
+	rm $base.bowtie2.$human.sam
 
 	echo
 	echo "Finished at ..."
