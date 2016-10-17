@@ -1,4 +1,4 @@
-#	chimera
+#	chimera (aka HERVnGoSeq)
 
 
 The purpose of these scripts is to locate the insertion points of one reference in another.
