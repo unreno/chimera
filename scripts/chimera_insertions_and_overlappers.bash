@@ -215,40 +215,54 @@ set -x
 
 	samtools view -h -F 4 $base.bam | gawk -v base=$base \
 		'BEGIN {
+#	Reintegrate fasta/fastq option?
 			pre_out=sprintf("%s.pre.fasta",base)
 			post_out=sprintf("%s.post.fasta",base)
 		}
+		#	Simply for progress
 		( ( NR % 10000 ) == 0 ){ print "Read "NR" records" }
 
+		#	Ex. @SQ	SN:chr1	LN:249250621
+		#	... ref[chr1] = 249250621
 		( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4) }
 
+
+#	Eventually, the database will contain multiple elements.
+#	HERVs, SINEs, LINEs, SVAs, ...
+#	Include this in the output read? Separate files?
+
+
 		#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
+		#	"near the beginning" means starts at position <= 5
 		( ( $6 ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( $4 <= 5 ) ){
 			split($6,a,"S")
 			clip=a[1]-$4+1
-			if( out == "fastq" ){
-				print "@"$1"_pre" >> pre_out
-				print substr($10,1,clip) >> pre_out
-				print "+" >> pre_out
-				print substr($11,1,clip) >> pre_out
-			} else {
+#	Sticking with fasta output as bowtie2 does not use it?
+#			if( out == "fastq" ){
+#				print "@"$1"_pre" >> pre_out
+#				print substr($10,1,clip) >> pre_out
+#				print "+" >> pre_out
+#				print substr($11,1,clip) >> pre_out
+#			} else {
 				print ">"$1"_pre" >> pre_out
 				print substr($10,1,clip) >> pre_out
-			}
+#			}
 		}
 
 		#	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
+		#	"near the end" means starts at position >= 5 more than the reference minus the length of the read
 		( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - length($10) + 5 ) ) ){
 			clip=ref[$3]-$4+2
-			if( out == "fastq" ){
-				print "@"$1"_post" >> post_out
-				print substr($10,clip) >> post_out
-				print "+" >> post_out
-				print substr($11,clip) >> post_out
-			} else {
+#	Sticking with fasta output as bowtie2 does not use it?
+#			if( out == "fastq" ){
+#				print "@"$1"_post" >> post_out
+#				print substr($10,clip) >> post_out
+#				print "+" >> post_out
+#				print substr($11,clip) >> post_out
+#			} else {
 				print ">"$1"_post" >> post_out
 				print substr($10,clip) >> post_out
-			}
+#			}
 		}'
 	#	-> pre.fasta
 	#	-> post.fasta
