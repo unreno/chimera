@@ -46,14 +46,7 @@ install-scripts: uninstall-scripts
 	$(MKDIR) $(BASE_BIN_DIR)/$(APPS_SUBDIR)
 	@printf "\nINSTALLING SCRIPTS\n\n"
 
-	#	when these actually exist ...
-	cp scripts/*.gawk $(BASE_BIN_DIR)/$(APPS_SUBDIR)/
-	#cp scripts/*.awk $(BASE_BIN_DIR)/$(APPS_SUBDIR)/
-	#cp scripts/*.pl $(BASE_BIN_DIR)/$(APPS_SUBDIR)/
-	#cp scripts/*.rb $(BASE_BIN_DIR)/$(APPS_SUBDIR)/
-	#cp scripts/*.sh $(BASE_BIN_DIR)/$(APPS_SUBDIR)/
-	cp scripts/*.bash $(BASE_BIN_DIR)/$(APPS_SUBDIR)/
-	cp scripts/*.r    $(BASE_BIN_DIR)/$(APPS_SUBDIR)/
+	cp scripts/* $(BASE_BIN_DIR)/$(APPS_SUBDIR)/
 
 	cd $(BASE_BIN_DIR); \
 	for file in `find $(APPS_SUBDIR) -type f` ; do \
