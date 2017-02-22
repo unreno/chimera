@@ -25,6 +25,11 @@ threads=2
 
 function usage(){
 	echo
+	echo
+	echo "THIS SCRIPT IS STILL IN DEVELOPMENT. DO NOT USE."
+	echo "THE VIRAL DATABASE MUST BE ALONE."
+	echo
+	echo
 	echo "Usage: (NO EQUALS SIGNS)"
 	echo
 	echo "Searches for pairs of reads, where one is viral and the other is human,"
@@ -104,6 +109,18 @@ set -x
 #	Very Sensitive Local. I want paired chimeras as well as individual chimeras.
 #	Will it work?
 
+#	Sadly, can't force paired alignment to be concordant (ie on the same reference sequence)
+#	--no-discordant doesn't seem to do anything at all
+
+#	With --all, the pairing can be across different references, which is not helpful.
+
+#	Looks like I will have to separate all sequences into different databases,
+#	then loop over and align to each.
+
+#	What about the soft clipping? Will I have to separate? Answers to come
+#	on the next episode of "what is jake up to now"
+
+
 
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype -1 $1 -2 $2 -S $base.sam
@@ -138,6 +155,27 @@ set -x
 	samtools view -h -b -f 4 -F 8 -o $base.unaligned_mate_aligned.bam $base.sam
 	samtools view -h -b -F 4 -f 8 -o $base.aligned_mate_unaligned.bam $base.sam
 	samtools view -h -b -F 12     -o $base.both_aligned.bam           $base.sam
+
+#Usage:   samtools merge [-nurlf] [-h inh.sam] [-b <bamlist.fofn>] <out.bam> <in1.bam> <in2.bam> [<in3.bam> ... <inN.bam>]
+#
+#Options: -n       sort by read names
+#         -r       attach RG tag (inferred from file names)
+#         -u       uncompressed BAM output
+#         -f       overwrite the output BAM if exist
+#         -1       compress level 1
+#         -l INT   compression level, from 0 to 9 [-1]
+#         -@ INT   number of BAM compression threads [0]
+#         -R STR   merge file in the specified region STR [all]
+#         -h FILE  copy the header in FILE to <out.bam> [in1.bam]
+#         -c       combine RG tags with colliding IDs rather than amending them
+#         -p       combine PG tags with colliding IDs rather than amending them
+#         -s VALUE override random seed
+#         -b FILE  list of input BAM filenames, one per line [null]
+
+	samtools merge -p -n -h $base.both_aligned.bam $base.align_mix.bam \
+		$base.unaligned_mate_aligned.bam \
+		$base.aligned_mate_unaligned.bam \
+		$base.both_aligned.bam 
 
 
 #	rm $base.sam
