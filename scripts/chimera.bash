@@ -120,6 +120,7 @@ set -x
 #	What about the soft clipping? Will I have to separate? Answers to come
 #	on the next episode of "what is jake up to now"
 
+#	split $viral .each do ...
 
 
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
