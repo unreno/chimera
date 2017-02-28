@@ -19,6 +19,7 @@
 #	Eventually, may want to pass number of cpus or threads so
 #	execs can use the same number.
 
+script=`basename $0`
 human='hg19'
 viral='herv_k113'
 threads=2
@@ -36,7 +37,7 @@ function usage(){
 	echo "as well as individual chimeric reads."
 	echo "Requires pairs of properly sorted, laned fasta or fastq files."
 	echo
-	echo "`basename $0` [--human STRING] [--viral STRING] [--threads INTEGER] <lane 1 fastq file(s)> <lane 2 fastq file(s)>"
+	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] <lane 1 fastq file(s)> <lane 2 fastq file(s)>"
 	echo
 	echo "Defaults:"
 	echo "  human ..... : $human"
@@ -106,23 +107,16 @@ set -x
 	base="$base.bowtie2.$viral.__very_sensitive_local"
 
 
-#	Very Sensitive Local. I want paired chimeras as well as individual chimeras.
-#	Will it work?
+	#	With --all, the pairing can be across different references, which is not helpful.
+	#	Sadly, can't force paired alignment to be concordant (ie on the same reference sequence)
+	#	--no-discordant doesn't seem to do anything at all
+	#	Looks like I will have to separate all sequences into different databases,
+	#	then loop over and align to each if want --all.
+	#	Could allow input to be --viral=hervk10,hervk113,hervk119 and then ...
+	#	split $viral .each do ...
+	#	IFS=',' read -r -a viral_dbs <<< $viral
+	#	then loop over each ????
 
-#	Sadly, can't force paired alignment to be concordant (ie on the same reference sequence)
-#	--no-discordant doesn't seem to do anything at all
-
-#	With --all, the pairing can be across different references, which is not helpful.
-
-#	Looks like I will have to separate all sequences into different databases,
-#	then loop over and align to each.
-
-#	What about the soft clipping? Will I have to separate? Answers to come
-#	on the next episode of "what is jake up to now"
-
-#	split $viral .each do ...
-
-#	IFS=',' read -r -a viral_dbs <<< $viral
 
 
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
@@ -135,37 +129,61 @@ set -x
 		exit $status
 	fi
 
-	#
-	#	Flags:
-	#		1    0x1   PAIRED        .. paired-end (or multiple-segment) sequencing technology
-	#		2    0x2   PROPER_PAIR   .. each segment properly aligned according to the aligner
-	#		4    0x4   UNMAP         .. segment unmapped
-	#		8    0x8   MUNMAP        .. next segment in the template unmapped
-	#		16   0x10  REVERSE       .. SEQ is reverse complemented
-	#		32   0x20  MREVERSE      .. SEQ of the next segment in the template is reversed
-	#		64   0x40  READ1         .. the first segment in the template
-	#		128  0x80  READ2         .. the last segment in the template
-	#		256  0x100 SECONDARY     .. secondary alignment
-	#		512  0x200 QCFAIL        .. not passing quality controls
-	#		1024 0x400 DUP           .. PCR or optical duplicate
-	#		2048 0x800 SUPPLEMENTARY .. supplementary alignment
-	#
+	samtools view -H -o $base.HEADER.sam $base.sam
 
-#	newbase="$base.unaligned_mate_aligned"
-#	samtools view -b -f 4 -F 8 -o $newbase.bam $base.sam
+	#	If one read aligns and the mate doesn't, 
+	#	the mate will still have a non-"*" value in the reference column $3 so ...
+	samtools view $base.sam | awk '( $3 != "*" )' > $base.something_aligned.sam
 
-#	Use awk script something like ...
-#	Buffer first read's info.
-#	On second read, if first and second read meet your demands, print it.
-#	Make sure that you skip the header!
-#BEGIN {
-#	if( !base ){
-#		print "Requires gawk and "
-#		print "please call with '-v base=YOUR_BASE'"
-#		print "samtools view $flag $1 | gawk -v base=YOUR_BASE -f "
-#		exit
-#	}
-#}
+	#	READ1 IS NOT ALWAYS FIRST!!!!!!  ERRRREEREREREREREWR!
+
+	#	bitwise math requires gawk, or perhaps a very new version awk
+
+#	Sam file columns
+#	1 QNAME String Query template NAME
+#	2 FLAG Int bitwise FLAG
+#	3 RNAME String Reference sequence NAME
+#	4 POS Int 1-based leftmost mapping POSition
+#	5 MAPQ Int MAPping Quality
+#	6 CIGAR String CIGAR string
+#	7 RNEXT String Ref.  name of the mate/next read
+#	8 PNEXT Int Position of the mate/next read
+#	9 TLEN Int observed Template LENgth
+#	10 SEQ String segment SEQuence
+#	11 QUAL String
+
+	gawk  -v base=$base '
+		function print_to_fastq(a){
+			lane=(and(a[2],64))?"1":"2";
+			print "@"a[1]"/"lane >> base"_R"lane".fastq"
+			print a[10] >> base"_R"lane".fastq"
+			print "+" >> base"_R"lane".fastq"
+			print a[11] >> base"_R"lane".fastq"
+		}
+		BEGIN{
+			split("",b);split("",l);
+		}
+		( b[1] == $1 ){
+			print "Matched "$1 
+			for(i=0;i<=NF;i++)l[i]=$i;
+
+#	If what want print each to separate fastq file
+#	
+#	So. What want?
+#	Separate file for each reference?
+#	Append reference to read name?
+
+			print_to_fastq( b )
+			print_to_fastq( l )
+
+			delete b; delete l;
+			next; #	do not buffer this line
+		}
+		( b[1] != $1 ){ 
+			print "Buffering new "$1
+			for(i=0;i<=NF;i++)b[i]=$i;
+		}'  $base.something_aligned.sam
+
 #( and( $2 , 64 ) ){
 #	b1=$1
 #	b10=$10
@@ -190,33 +208,20 @@ set -x
 #		print $11 >> base"_R2.fastq"
 #		b1=b10=b11=""
 #	}
-}
+#}
 
 
-	samtools view -h -b -f 4 -F 8 -o $base.unaligned_mate_aligned.bam $base.sam
-	samtools view -h -b -F 4 -f 8 -o $base.aligned_mate_unaligned.bam $base.sam
-	samtools view -h -b -F 12     -o $base.both_aligned.bam           $base.sam
 
-#Usage:   samtools merge [-nurlf] [-h inh.sam] [-b <bamlist.fofn>] <out.bam> <in1.bam> <in2.bam> [<in3.bam> ... <inN.bam>]
-#
-#Options: -n       sort by read names
-#         -r       attach RG tag (inferred from file names)
-#         -u       uncompressed BAM output
-#         -f       overwrite the output BAM if exist
-#         -1       compress level 1
-#         -l INT   compression level, from 0 to 9 [-1]
-#         -@ INT   number of BAM compression threads [0]
-#         -R STR   merge file in the specified region STR [all]
-#         -h FILE  copy the header in FILE to <out.bam> [in1.bam]
-#         -c       combine RG tags with colliding IDs rather than amending them
-#         -p       combine PG tags with colliding IDs rather than amending them
-#         -s VALUE override random seed
-#         -b FILE  list of input BAM filenames, one per line [null]
 
-	samtools merge -p -n -h $base.both_aligned.bam $base.align_mix.bam \
-		$base.unaligned_mate_aligned.bam \
-		$base.aligned_mate_unaligned.bam \
-		$base.both_aligned.bam 
+#	samtools view -h -b -f 4 -F 8 -o $base.unaligned_mate_aligned.bam $base.sam
+#	samtools view -h -b -F 4 -f 8 -o $base.aligned_mate_unaligned.bam $base.sam
+#	samtools view -h -b -F 12     -o $base.both_aligned.bam           $base.sam
+
+
+#	samtools merge -p -n -h $base.both_aligned.bam $base.align_mix.bam \
+#		$base.unaligned_mate_aligned.bam \
+#		$base.aligned_mate_unaligned.bam \
+#		$base.both_aligned.bam 
 
 
 #	rm $base.sam
@@ -226,24 +231,6 @@ set -x
 #	samtools view $base.bam | gawk '{l=(and($2,64))?"1":"2";print ">"$1"/"l;print $10;}' > $base.fasta
 
 
-	#
-	#    f4 = unmapped
-	#    F4 = NOT unmapped = mapped
-	#    F8 = mate NOT unmapped = mate mapped
-	#
-	#	Sam file columns
-	#	1 QNAME String Query template NAME
-	#	2 FLAG Int bitwise FLAG
-	#	3 RNAME String Reference sequence NAME
-	#	4 POS Int 1-based leftmost mapping POSition
-	#	5 MAPQ Int MAPping Quality
-	#	6 CIGAR String CIGAR string
-	#	7 RNEXT String Ref.  name of the mate/next read
-	#	8 PNEXT Int Position of the mate/next read
-	#	9 TLEN Int observed Template LENgth
-	#	10 SEQ String segment SEQuence
-	#	11 QUAL String
-	#
 
 #	#	Align the reads to the human reference.
 #	bowtie2 -x $human --threads $threads -f -U $base.fasta \
@@ -264,4 +251,60 @@ set -x
 	echo "Finished at ..."
 	date
 
-} 1>>$base.`basename $0`.out 2>&1 &
+} 1>>$base.$script.out 2>&1 &
+
+
+
+
+#	NOTES:
+#
+#	Flags:
+#		1    0x1   PAIRED        .. paired-end (or multiple-segment) sequencing technology
+#		2    0x2   PROPER_PAIR   .. each segment properly aligned according to the aligner
+#		4    0x4   UNMAP         .. segment unmapped
+#		8    0x8   MUNMAP        .. next segment in the template unmapped
+#		16   0x10  REVERSE       .. SEQ is reverse complemented
+#		32   0x20  MREVERSE      .. SEQ of the next segment in the template is reversed
+#		64   0x40  READ1         .. the first segment in the template
+#		128  0x80  READ2         .. the last segment in the template
+#		256  0x100 SECONDARY     .. secondary alignment
+#		512  0x200 QCFAIL        .. not passing quality controls
+#		1024 0x400 DUP           .. PCR or optical duplicate
+#		2048 0x800 SUPPLEMENTARY .. supplementary alignment
+#
+#    f4 = unmapped
+#    F4 = NOT unmapped = mapped
+#    F8 = mate NOT unmapped = mate mapped
+#
+#
+#	Sam file columns
+#	1 QNAME String Query template NAME
+#	2 FLAG Int bitwise FLAG
+#	3 RNAME String Reference sequence NAME
+#	4 POS Int 1-based leftmost mapping POSition
+#	5 MAPQ Int MAPping Quality
+#	6 CIGAR String CIGAR string
+#	7 RNEXT String Ref.  name of the mate/next read
+#	8 PNEXT Int Position of the mate/next read
+#	9 TLEN Int observed Template LENgth
+#	10 SEQ String segment SEQuence
+#	11 QUAL String
+#
+#
+#
+#
+#Usage:   samtools merge [-nurlf] [-h inh.sam] [-b <bamlist.fofn>] <out.bam> <in1.bam> <in2.bam> [<in3.bam> ... <inN.bam>]
+#
+#Options: -n       sort by read names
+#         -r       attach RG tag (inferred from file names)
+#         -u       uncompressed BAM output
+#         -f       overwrite the output BAM if exist
+#         -1       compress level 1
+#         -l INT   compression level, from 0 to 9 [-1]
+#         -@ INT   number of BAM compression threads [0]
+#         -R STR   merge file in the specified region STR [all]
+#         -h FILE  copy the header in FILE to <out.bam> [in1.bam]
+#         -c       combine RG tags with colliding IDs rather than amending them
+#         -p       combine PG tags with colliding IDs rather than amending them
+#         -s VALUE override random seed
+#         -b FILE  list of input BAM filenames, one per line [null]
