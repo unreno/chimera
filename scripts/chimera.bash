@@ -122,6 +122,8 @@ set -x
 
 #	split $viral .each do ...
 
+#	IFS=',' read -r -a viral_dbs <<< $viral
+
 
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype -1 $1 -2 $2 -S $base.sam
@@ -151,6 +153,44 @@ set -x
 
 #	newbase="$base.unaligned_mate_aligned"
 #	samtools view -b -f 4 -F 8 -o $newbase.bam $base.sam
+
+#	Use awk script something like ...
+#	Buffer first read's info.
+#	On second read, if first and second read meet your demands, print it.
+#	Make sure that you skip the header!
+#BEGIN {
+#	if( !base ){
+#		print "Requires gawk and "
+#		print "please call with '-v base=YOUR_BASE'"
+#		print "samtools view $flag $1 | gawk -v base=YOUR_BASE -f "
+#		exit
+#	}
+#}
+#( and( $2 , 64 ) ){
+#	b1=$1
+#	b10=$10
+#	b11=$11
+#}
+#( and( $2 , 128 ) ){
+#	if ( $1 == b1 ){
+#		if ( length(b10) != length($10) ){
+#			print $1 >> base".diff_length_reads"
+#		}
+#		if ( length(b11) != length($11) ){
+#			print $1 >> base".diff_length_quality"
+#		}
+#		print "@"b1"/1" >> base"_R1.fastq"
+#		print b10 >> base"_R1.fastq"
+#		print "+" >> base"_R1.fastq"
+#		print b11 >> base"_R1.fastq"
+#
+#		print "@"$1"/2" >> base"_R2.fastq"
+#		print $10 >> base"_R2.fastq"
+#		print "+" >> base"_R2.fastq"
+#		print $11 >> base"_R2.fastq"
+#		b1=b10=b11=""
+#	}
+}
 
 
 	samtools view -h -b -f 4 -F 8 -o $base.unaligned_mate_aligned.bam $base.sam
