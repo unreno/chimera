@@ -20,6 +20,7 @@
 #	Eventually, may want to pass number of cpus or threads so
 #	execs can use the same number.
 
+script=`basename $0`
 human='hg19'
 viral='herv_k113'
 threads=2
@@ -31,7 +32,7 @@ function usage(){
 	echo "Searches for pairs of reads, where one is viral and the other is human."
 	echo "Requires pairs of properly sorted, laned fasta or fastq files."
 	echo
-	echo "`basename $0` [--human STRING] [--viral STRING] [--threads INTEGER] <lane 1 fastq file(s)> <lane 2 fastq file(s)>"
+	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] <lane 1 fastq file(s)> <lane 2 fastq file(s)>"
 	echo
 	echo "Defaults:"
 	echo "  human ..... : $human"
@@ -173,4 +174,4 @@ set -x
 	echo "Finished at ..."
 	date
 
-} 1>>$base.`basename $0`.out 2>&1 &
+} 1>>$base.$script.out 2>&1 &
