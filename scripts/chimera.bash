@@ -119,6 +119,7 @@ set -x
 
 
 
+#	bowtie2 --very-sensitive --threads $threads -x $viral \
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype -1 $1 -2 $2 -S $base.sam
 
@@ -139,19 +140,6 @@ set -x
 
 	#	bitwise math requires gawk, or perhaps a very new version awk
 
-#	Sam file columns
-#	1 QNAME String Query template NAME
-#	2 FLAG Int bitwise FLAG
-#	3 RNAME String Reference sequence NAME
-#	4 POS Int 1-based leftmost mapping POSition
-#	5 MAPQ Int MAPping Quality
-#	6 CIGAR String CIGAR string
-#	7 RNEXT String Ref.  name of the mate/next read
-#	8 PNEXT Int Position of the mate/next read
-#	9 TLEN Int observed Template LENgth
-#	10 SEQ String segment SEQuence
-#	11 QUAL String
-
 	gawk  -v base=$base '
 		function print_to_fastq(a){
 			lane=(and(a[2],64))?"1":"2";
@@ -164,23 +152,28 @@ set -x
 			split("",b);split("",l);
 		}
 		( b[1] == $1 ){
-			print "Matched "$1 
+#			print "Matched "$1 
 			for(i=0;i<=NF;i++)l[i]=$i;
 
-#	If what want print each to separate fastq file
+#	If what want, print each to separate fastq file
 #	
 #	So. What want?
 #	Separate file for each reference?
 #	Append reference to read name?
 
-			print_to_fastq( b )
-			print_to_fastq( l )
+#			print_to_fastq( b )
+#			print_to_fastq( l )
+
+			blane=(and(b[2],64))?"1":"2";
+			llane=(and(l[2],64))?"1":"2";
+
+			print blane, b[6], llane, l[6]
 
 			delete b; delete l;
 			next; #	do not buffer this line
 		}
 		( b[1] != $1 ){ 
-			print "Buffering new "$1
+#			print "Buffering new "$1
 			for(i=0;i<=NF;i++)b[i]=$i;
 		}'  $base.something_aligned.sam
 
@@ -190,38 +183,7 @@ set -x
 #	b11=$11
 #}
 #( and( $2 , 128 ) ){
-#	if ( $1 == b1 ){
-#		if ( length(b10) != length($10) ){
-#			print $1 >> base".diff_length_reads"
-#		}
-#		if ( length(b11) != length($11) ){
-#			print $1 >> base".diff_length_quality"
-#		}
-#		print "@"b1"/1" >> base"_R1.fastq"
-#		print b10 >> base"_R1.fastq"
-#		print "+" >> base"_R1.fastq"
-#		print b11 >> base"_R1.fastq"
-#
-#		print "@"$1"/2" >> base"_R2.fastq"
-#		print $10 >> base"_R2.fastq"
-#		print "+" >> base"_R2.fastq"
-#		print $11 >> base"_R2.fastq"
-#		b1=b10=b11=""
-#	}
 #}
-
-
-
-
-#	samtools view -h -b -f 4 -F 8 -o $base.unaligned_mate_aligned.bam $base.sam
-#	samtools view -h -b -F 4 -f 8 -o $base.aligned_mate_unaligned.bam $base.sam
-#	samtools view -h -b -F 12     -o $base.both_aligned.bam           $base.sam
-
-
-#	samtools merge -p -n -h $base.both_aligned.bam $base.align_mix.bam \
-#		$base.unaligned_mate_aligned.bam \
-#		$base.aligned_mate_unaligned.bam \
-#		$base.both_aligned.bam 
 
 
 #	rm $base.sam
