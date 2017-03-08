@@ -259,6 +259,43 @@ set -x
 			$aligned.$pre_or_post.bowtie2.$human.sam
 		rm $aligned.$pre_or_post.bowtie2.$human.sam
 
+
+#	Sadly, this won't work as is.
+#	The TCGA data uses sequence names like "@SRR448740.1 1/1"
+#	When read as unlaned by bowtie, the name truncates at the space.
+#	By doing this the lane is unattainable. We would need to do some renaming.
+#	That would take a bit of time and disk space. What a waste.
+
+#	Or perhaps run each lane separately into clearly marked files?
+
+#		gawk -v base=$base -v pre_or_post=$pre_or_post '
+#		BEGIN {
+#			out[1]=sprintf("%s.%s.1.fasta",base,pre_or_post)
+#			out[2]=sprintf("%s.%s.2.fasta",base,pre_or_post)
+#		}
+#		( ( NR == FNR ) && ( /^>/ ) ){
+#			sub(/^>/,"");
+#			split($0,name,"/");
+#			names[name[1]]=name[2];
+#			seqs[name[1]]="";
+#			last=name[1];
+#		}
+#		( ( NR == FNR ) && ( !/^>/ ) ){
+#			seqs[last]=seqs[last] $0
+#		}
+#		( ( NR != FNR ) && ( ! /^@/ ) ) {
+#			split($1,name,"/");
+#			#	sam file: sequence name in fasta, not the same lane, and unmapped
+#			if( ( name[1] in names ) && ( name[2] != names[name[1]] ) && ( and($2,4) ) ) ){
+#
+#				print name[1] "/" names[name[1]] >> out[names[name[1]]]
+#				print seqs[name[1]] >> out[names[name[1]]]
+#				print name[1] "/" name[2] >> out[name[2]]
+#				print $10 >> out[name[2]]
+#
+#			}
+#		}' $aligned.$pre_or_post.fasta $base.sam
+
 	done
 
 	#	find insertion points
