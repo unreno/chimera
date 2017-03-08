@@ -102,15 +102,17 @@ set -x
 	base="$base.bowtie2.$viral.__very_sensitive"
 
 	bowtie2 --very-sensitive --threads $threads -x $viral \
-		$filetype -1 $1 -2 $2 | samtools view -b -o $base.bam
-#		$filetype -1 $1 -2 $2 -S $base.sam
-
+		$filetype -1 $1 -2 $2 -S $base.sam
 	status=$?
 	if [ $status -ne 0 ] ; then
 		date
 		echo "bowtie failed with $status"
 		exit $status
 	fi
+
+	#	Convert to bam and remove the sam.
+	samtools view -b -o $base.bam $base.sam
+	rm $base.sam
 
 	#	BEGIN extraction of JUST UNALIGNED READ and alignment to HUMAN
 	umabase="$base.unaligned_mate_aligned"
@@ -122,19 +124,18 @@ set -x
 
 	#	Align the reads to the human reference.
 	bowtie2 -x $human --threads $threads -f -U $umabase.fasta \
-		| samtools view -b -o $umabase.bowtie2.$human.bam
-#		-S $umabase.bowtie2.$human.sam
+		-S $umabase.bowtie2.$human.sam
 	status=$?
 	if [ $status -ne 0 ] ; then
 		date
-		echo "bowtie or samtools failed with $status"
+		echo "bowtie failed with $status"
 		exit $status
 	fi
 
-#	#	Convert to bam and remove the sam.
-#	samtools view -b -o $umabase.bowtie2.$human.bam \
-#		$umabase.bowtie2.$human.sam
-#	rm $umabase.bowtie2.$human.sam
+	#	Convert to bam and remove the sam.
+	samtools view -b -o $umabase.bowtie2.$human.bam \
+		$umabase.bowtie2.$human.sam
+	rm $umabase.bowtie2.$human.sam
 	#	END extraction of JUST UNALIGNED READ and alignment to HUMAN
 
 
@@ -176,8 +177,7 @@ set -x
 
 	#	Align the reads to the human reference.
 	bowtie2 -x $human --threads $threads -f -1 ${habase}_1.fasta -2 ${habase}_2.fasta \
-		| samtools view -b -o $habase.bowtie2.$human.bam
-#		-S $habase.bowtie2.$human.sam
+		-S $habase.bowtie2.$human.sam
 	status=$?
 	if [ $status -ne 0 ] ; then
 		date
@@ -185,13 +185,12 @@ set -x
 		exit $status
 	fi
 
-#	#	Convert to bam and remove the sam.
-#	samtools view -b -o $habase.bowtie2.$human.bam \
-#		$habase.bowtie2.$human.sam
-#	rm $habase.bowtie2.$human.sam
+	#	Convert to bam and remove the sam.
+	samtools view -b -o $habase.bowtie2.$human.bam \
+		$habase.bowtie2.$human.sam
+	rm $habase.bowtie2.$human.sam
 	#	END extraction of ALIGNED READ AND UNALIGNED MATE and alignment to HUMAN
 
-#	rm $base.sam
 #	rm $base.bam
 
 	echo
