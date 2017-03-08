@@ -110,14 +110,15 @@ set -x
 		exit $status
 	fi
 
-	#	Convert to bam and remove the sam.
-	samtools view -b -o $base.bam $base.sam
-	rm $base.sam
+#	This seems unnecessary as just going to toss it anyway.
+#	#	Convert to bam and remove the sam.
+#	samtools view -b -o $base.bam $base.sam
+#	rm $base.sam
 
 	#	BEGIN extraction of JUST UNALIGNED READ and alignment to HUMAN
 	umabase="$base.unaligned_mate_aligned"
 
-	samtools view -f 4 -F 8 $base.bam | gawk '
+	samtools view -f 4 -F 8 $base.sam | gawk '
 		{	l=(and($2,64))?"1":"2";
 			print ">"$1"/"l;
 			print $10;}' > $umabase.fasta
@@ -150,7 +151,7 @@ set -x
 	#	bitwise math requires gawk, or perhaps a very new version awk
 
 	habase=$base.half_aligned
-	samtools view $base.bam | awk '( $3 != "*" )' | gawk  -v base=$habase '
+	samtools view $base.sam | awk '( $3 != "*" )' | gawk  -v base=$habase '
 		function print_to_fasta(a){
 			lane=(and(a[2],64))?"1":"2";
 			print ">"a[1]"/"lane >> base"_"lane".fasta"
@@ -191,7 +192,7 @@ set -x
 	rm $habase.bowtie2.$human.sam
 	#	END extraction of ALIGNED READ AND UNALIGNED MATE and alignment to HUMAN
 
-#	rm $base.bam
+#	rm $base.sam
 
 	echo
 	echo "Finished at ..."
