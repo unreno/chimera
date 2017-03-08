@@ -166,10 +166,10 @@ set -x
 		exit $status
 	fi
 
-	samtools view -b -F 4 -o $base.aligned.bam $base.sam
-	rm $base.sam
+	aligned="$base.aligned"
+	samtools view -b -F 4 -o $aligned.bam $base.sam
+#	rm $base.sam
 
-	base="$base.aligned"
 
 	#	requires bash >= 4.0
 	#	${VARIABLE^^} converts to uppercase
@@ -187,7 +187,7 @@ set -x
 	#	Need a newer version or add the --posix option
 
 	#	Using -F 4 here again, seems unnecessary.
-	samtools view -h -F 4 $base.bam | gawk -v base=$base \
+	samtools view -h -F 4 $aligned.bam | gawk -v base=$aligned \
 		'BEGIN {
 #	Reintegrate fasta/fastq option?
 			pre_out=sprintf("%s.pre.fasta",base)
@@ -245,8 +245,8 @@ set -x
 	for pre_or_post in pre post ; do
 
 		#	Align the chimeric reads to the human reference.
-		bowtie2 -x $human --threads $threads -f -U $base.$pre_or_post.fasta \
-			-S $base.$pre_or_post.bowtie2.$human.sam
+		bowtie2 -x $human --threads $threads -f -U $aligned.$pre_or_post.fasta \
+			-S $aligned.$pre_or_post.bowtie2.$human.sam
 		status=$?
 		if [ $status -ne 0 ] ; then
 			date
@@ -255,9 +255,9 @@ set -x
 		fi
 
 		#	Convert to bam and remove the sam.
-		samtools view -b -o $base.$pre_or_post.bowtie2.$human.bam \
-			$base.$pre_or_post.bowtie2.$human.sam
-		rm $base.$pre_or_post.bowtie2.$human.sam
+		samtools view -b -o $aligned.$pre_or_post.bowtie2.$human.bam \
+			$aligned.$pre_or_post.bowtie2.$human.sam
+		rm $aligned.$pre_or_post.bowtie2.$human.sam
 
 	done
 
@@ -276,23 +276,23 @@ set -x
 		echo $q
 		mapq="Q${q}"
 
-		samtools view -q $q -F 20 $base.pre.bowtie2.$human.bam \
+		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
 			| awk '{print $3"|"$4+length($10)}' \
-			| sort > $base.pre.bowtie2.$human.$mapq.insertion_points
-		samtools view -q $q -F 20 $base.post.bowtie2.$human.bam \
+			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
+		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
 			| awk '{print $3"|"$4}' \
-			| sort > $base.post.bowtie2.$human.$mapq.insertion_points
-		positions_within_10bp $base.*.bowtie2.$human.$mapq.insertion_points \
-			| sort | uniq -c > $base.both.bowtie2.$human.$mapq.insertion_points.overlappers
+			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
+		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.insertion_points \
+			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
 
-		samtools view -q $q -F 4 -f 16 $base.pre.bowtie2.$human.bam \
+		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
 			| awk '{print $3"|"$4}' \
-			| sort > $base.pre.bowtie2.$human.$mapq.rc_insertion_points
-		samtools view -q $q -F 4 -f 16 $base.post.bowtie2.$human.bam \
+			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
+		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
 			| awk '{print $3"|"$4+length($10)}' \
-			| sort > $base.post.bowtie2.$human.$mapq.rc_insertion_points
-		positions_within_10bp $base.*.bowtie2.$human.$mapq.rc_insertion_points \
-			| sort | uniq -c > $base.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
+			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
+		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
+			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
 
 	done
 
