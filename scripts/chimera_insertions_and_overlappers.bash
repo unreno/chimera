@@ -186,6 +186,7 @@ set -x
 	#		ie ({4}, {4,}, {4,6})
 	#	Need a newer version or add the --posix option
 
+	#	Using -F 4 here again, seems unnecessary.
 	samtools view -h -F 4 $base.bam | gawk -v base=$base \
 		'BEGIN {
 #	Reintegrate fasta/fastq option?
