@@ -102,7 +102,8 @@ set -x
 	base="$base.bowtie2.$viral.__very_sensitive"
 
 	bowtie2 --very-sensitive --threads $threads -x $viral \
-		$filetype -1 $1 -2 $2 -S $base.sam
+		$filetype -1 $1 -2 $2 | samtools view -b -o $base.bam
+#		$filetype -1 $1 -2 $2 -S $base.sam
 
 	status=$?
 	if [ $status -ne 0 ] ; then
@@ -111,67 +112,125 @@ set -x
 		exit $status
 	fi
 
-	#
-	#	Flags:
-	#		1    0x1   PAIRED        .. paired-end (or multiple-segment) sequencing technology
-	#		2    0x2   PROPER_PAIR   .. each segment properly aligned according to the aligner
-	#		4    0x4   UNMAP         .. segment unmapped
-	#		8    0x8   MUNMAP        .. next segment in the template unmapped
-	#		16   0x10  REVERSE       .. SEQ is reverse complemented
-	#		32   0x20  MREVERSE      .. SEQ of the next segment in the template is reversed
-	#		64   0x40  READ1         .. the first segment in the template
-	#		128  0x80  READ2         .. the last segment in the template
-	#		256  0x100 SECONDARY     .. secondary alignment
-	#		512  0x200 QCFAIL        .. not passing quality controls
-	#		1024 0x400 DUP           .. PCR or optical duplicate
-	#		2048 0x800 SUPPLEMENTARY .. supplementary alignment
-	#
+	#	BEGIN extraction of JUST UNALIGNED READ and alignment to HUMAN
+	umabase="$base.unaligned_mate_aligned"
 
-	newbase="$base.unaligned_mate_aligned"
-	samtools view -b -f 4 -F 8 -o $newbase.bam $base.sam
-	rm $base.sam
-	base=$newbase
-
-	#samtools view $base.bam | awk '{print "@"$1;print $10;print "+";print $11;}' > $base.fastq
-	samtools view $base.bam | gawk '{l=(and($2,64))?"1":"2";print ">"$1"/"l;print $10;}' > $base.fasta
-
-
-	#
-	#    f4 = unmapped
-	#    F4 = NOT unmapped = mapped
-	#    F8 = mate NOT unmapped = mate mapped
-	#
-	#	Sam file columns
-	#	1 QNAME String Query template NAME
-	#	2 FLAG Int bitwise FLAG
-	#	3 RNAME String Reference sequence NAME
-	#	4 POS Int 1-based leftmost mapping POSition
-	#	5 MAPQ Int MAPping Quality
-	#	6 CIGAR String CIGAR string
-	#	7 RNEXT String Ref.  name of the mate/next read
-	#	8 PNEXT Int Position of the mate/next read
-	#	9 TLEN Int observed Template LENgth
-	#	10 SEQ String segment SEQuence
-	#	11 QUAL String
-	#
+	samtools view -f 4 -F 8 $base.bam | gawk '
+		{	l=(and($2,64))?"1":"2";
+			print ">"$1"/"l;
+			print $10;}' > $umabase.fasta
 
 	#	Align the reads to the human reference.
-	bowtie2 -x $human --threads $threads -f -U $base.fasta \
-		-S $base.bowtie2.$human.sam
+	bowtie2 -x $human --threads $threads -f -U $umabase.fasta \
+		| samtools view -b -o $umabase.bowtie2.$human.bam
+#		-S $umabase.bowtie2.$human.sam
 	status=$?
 	if [ $status -ne 0 ] ; then
 		date
-		echo "bowtie failed with $status"
+		echo "bowtie or samtools failed with $status"
 		exit $status
 	fi
 
-	#	Convert to bam and remove the sam.
-	samtools view -b -o $base.bowtie2.$human.bam \
-		$base.bowtie2.$human.sam
-	rm $base.bowtie2.$human.sam
+#	#	Convert to bam and remove the sam.
+#	samtools view -b -o $umabase.bowtie2.$human.bam \
+#		$umabase.bowtie2.$human.sam
+#	rm $umabase.bowtie2.$human.sam
+	#	END extraction of JUST UNALIGNED READ and alignment to HUMAN
+
+
+
+	#	BEGIN extraction of ALIGNED READ AND UNALIGNED MATE and alignment to HUMAN
+
+	#	If one read aligns and the mate doesn't, 
+	#	the mate will still have a non-"*" value in the reference column $3 so ...
+
+	#	READ1 IS NOT ALWAYS FIRST!!!!!!  ERRRREEREREREREREWR!
+
+	#	bitwise math requires gawk, or perhaps a very new version awk
+
+	habase=$base.half_aligned
+	samtools view $base.bam | awk '( $3 != "*" )' | gawk  -v base=$habase '
+		function print_to_fasta(a){
+			lane=(and(a[2],64))?"1":"2";
+			print ">"a[1]"/"lane >> base"_"lane".fasta"
+			print a[10]          >> base"_"lane".fasta"
+		}
+		BEGIN{
+			split("",b);split("",l);
+		}
+		( b[1] == $1 ){
+			for(i=0;i<=NF;i++)l[i]=$i;
+
+			#	many ways to check this
+			if( ( and(l[2],4) && !and(l[2],8) ) || ( !and(l[2],4) && and(l[2],8) ) ){
+				print_to_fasta( b )
+				print_to_fasta( l )
+			}
+
+			delete b; delete l;
+			next; #	do not buffer this line
+		}
+		( b[1] != $1 ){ 
+			for(i=0;i<=NF;i++)b[i]=$i;
+		}'  
+
+	#	Align the reads to the human reference.
+	bowtie2 -x $human --threads $threads -f -1 ${habase}_1.fasta -2 ${habase}_2.fasta \
+		| samtools view -b -o $habase.bowtie2.$human.bam
+#		-S $habase.bowtie2.$human.sam
+	status=$?
+	if [ $status -ne 0 ] ; then
+		date
+		echo "bowtie or samtools failed with $status"
+		exit $status
+	fi
+
+#	#	Convert to bam and remove the sam.
+#	samtools view -b -o $habase.bowtie2.$human.bam \
+#		$habase.bowtie2.$human.sam
+#	rm $habase.bowtie2.$human.sam
+	#	END extraction of ALIGNED READ AND UNALIGNED MATE and alignment to HUMAN
+
+#	rm $base.sam
+#	rm $base.bam
 
 	echo
 	echo "Finished at ..."
 	date
 
 } 1>>$base.$script.out 2>&1 &
+
+#		REFERENCES
+#
+#	Flags:
+#		1    0x1   PAIRED        .. paired-end (or multiple-segment) sequencing technology
+#		2    0x2   PROPER_PAIR   .. each segment properly aligned according to the aligner
+#		4    0x4   UNMAP         .. segment unmapped
+#		8    0x8   MUNMAP        .. next segment in the template unmapped
+#		16   0x10  REVERSE       .. SEQ is reverse complemented
+#		32   0x20  MREVERSE      .. SEQ of the next segment in the template is reversed
+#		64   0x40  READ1         .. the first segment in the template
+#		128  0x80  READ2         .. the last segment in the template
+#		256  0x100 SECONDARY     .. secondary alignment
+#		512  0x200 QCFAIL        .. not passing quality controls
+#		1024 0x400 DUP           .. PCR or optical duplicate
+#		2048 0x800 SUPPLEMENTARY .. supplementary alignment
+#
+#
+#    f4 = unmapped
+#    F4 = NOT unmapped = mapped
+#    F8 = mate NOT unmapped = mate mapped
+#
+#	Sam file columns
+#	1 QNAME String Query template NAME
+#	2 FLAG Int bitwise FLAG
+#	3 RNAME String Reference sequence NAME
+#	4 POS Int 1-based leftmost mapping POSition
+#	5 MAPQ Int MAPping Quality
+#	6 CIGAR String CIGAR string
+#	7 RNEXT String Ref.  name of the mate/next read
+#	8 PNEXT Int Position of the mate/next read
+#	9 TLEN Int observed Template LENgth
+#	10 SEQ String segment SEQuence
+#	11 QUAL String
+#
