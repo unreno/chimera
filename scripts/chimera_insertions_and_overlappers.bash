@@ -163,22 +163,6 @@ set -x
 		exit $status
 	fi
 
-	#
-	#	Flags:
-	#		1    0x1   PAIRED        .. paired-end (or multiple-segment) sequencing technology
-	#		2    0x2   PROPER_PAIR   .. each segment properly aligned according to the aligner
-	#		4    0x4   UNMAP         .. segment unmapped
-	#		8    0x8   MUNMAP        .. next segment in the template unmapped
-	#		16   0x10  REVERSE       .. SEQ is reverse complemented
-	#		32   0x20  MREVERSE      .. SEQ of the next segment in the template is reversed
-	#		64   0x40  READ1         .. the first segment in the template
-	#		128  0x80  READ2         .. the last segment in the template
-	#		256  0x100 SECONDARY     .. secondary alignment
-	#		512  0x200 QCFAIL        .. not passing quality controls
-	#		1024 0x400 DUP           .. PCR or optical duplicate
-	#		2048 0x800 SUPPLEMENTARY .. supplementary alignment
-	#
-
 	samtools view -b -F 4 -o $base.aligned.bam $base.sam
 	rm $base.sam
 
@@ -198,21 +182,6 @@ set -x
 	#	Older versions of awk do not directly support "interval expressions",
 	#		ie ({4}, {4,}, {4,6])
 	#	Need a newer version or add the --posix option
-
-	#
-	#	Sam file columns
-	#	1 QNAME String Query template NAME
-	#	2 FLAG Int bitwise FLAG
-	#	3 RNAME String Reference sequence NAME
-	#	4 POS Int 1-based leftmost mapping POSition
-	#	5 MAPQ Int MAPping Quality
-	#	6 CIGAR String CIGAR string
-	#	7 RNEXT String Ref.  name of the mate/next read
-	#	8 PNEXT Int Position of the mate/next read
-	#	9 TLEN Int observed Template LENgth
-	#	10 SEQ String segment SEQuence
-	#	11 QUAL String
-	#
 
 	samtools view -h -F 4 $base.bam | gawk -v base=$base \
 		'BEGIN {
@@ -328,3 +297,35 @@ set -x
 	date
 
 } 1>>$base.$script.out 2>&1 &
+
+
+#		REFERENCES
+#
+#	Flags:
+#		1    0x1   PAIRED        .. paired-end (or multiple-segment) sequencing technology
+#		2    0x2   PROPER_PAIR   .. each segment properly aligned according to the aligner
+#		4    0x4   UNMAP         .. segment unmapped
+#		8    0x8   MUNMAP        .. next segment in the template unmapped
+#		16   0x10  REVERSE       .. SEQ is reverse complemented
+#		32   0x20  MREVERSE      .. SEQ of the next segment in the template is reversed
+#		64   0x40  READ1         .. the first segment in the template
+#		128  0x80  READ2         .. the last segment in the template
+#		256  0x100 SECONDARY     .. secondary alignment
+#		512  0x200 QCFAIL        .. not passing quality controls
+#		1024 0x400 DUP           .. PCR or optical duplicate
+#		2048 0x800 SUPPLEMENTARY .. supplementary alignment
+#
+#
+#	Sam file columns
+#	1 QNAME String Query template NAME
+#	2 FLAG Int bitwise FLAG
+#	3 RNAME String Reference sequence NAME
+#	4 POS Int 1-based leftmost mapping POSition
+#	5 MAPQ Int MAPping Quality
+#	6 CIGAR String CIGAR string
+#	7 RNEXT String Ref.  name of the mate/next read
+#	8 PNEXT Int Position of the mate/next read
+#	9 TLEN Int observed Template LENgth
+#	10 SEQ String segment SEQuence
+#	11 QUAL String
+#
