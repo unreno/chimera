@@ -42,10 +42,12 @@ function usage(){
 	echo "Note: all output files will be based on the working directory's name"
 	echo
 	echo "Note: fastq files can be gzipped (.gz) or bzipped (.bz2),"
-	echo " but MUST be separated by commas without white space."
-	echo "They will be passed directly to bowtie2 as such."
-	echo "For example:"
-	echo "  a.fastq.gz,b.fastq.gz"
+#	Not true, I now join them. This doesn't work in other scripts where they are laned.
+#	I would have to add a special parameter to determine which is which.
+#	echo " but MUST be separated by commas without white space."
+#	echo "They will be passed directly to bowtie2 as such."
+#	echo "For example:"
+#	echo "  a.fastq.gz,b.fastq.gz"
 	echo
 	exit
 }
@@ -133,9 +135,9 @@ set -x
 	export BOWTIE2_INDEXES
 
 	#	One line "if-then-else" to determine filetype by last character of first file name.
-	[ "${1:(-1)}" == 'q' ] && filetype='-q' || filetype='-f'
-#	[ "${1:(-1)}" == "q" -o "${1:(-5)}" == "q.bz2" -o "${1:(-4)}" == "q.gz" ] \
-#		&& filetype='-q' || filetype='-f'
+#	[ "${1:(-1)}" == 'q' ] && filetype='-q' || filetype='-f'
+	[ "${1:(-1)}" == "q" -o "${1:(-5)}" == "q.bz2" -o "${1:(-4)}" == "q.gz" ] \
+		&& filetype='-q' || filetype='-f'
 
 	#	Create a string of all files to be passed to bowtie2
 	files=$(echo $* | awk '{printf "-U ";for(i=1;i<NF;i++){printf "%s,",$i};print $NF}')
@@ -150,6 +152,7 @@ set -x
 
 #		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
 #	samtools does not seem to process STDIN pipe, so can't do that.
+#	Actually, it may but you might have to use - as the filename.
 
 #	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
 #	That would remove the need to convert and delete later.
@@ -180,7 +183,7 @@ set -x
 	#    F8 = mate NOT unmapped = mate mapped
 	#
 	#	Older versions of awk do not directly support "interval expressions",
-	#		ie ({4}, {4,}, {4,6])
+	#		ie ({4}, {4,}, {4,6})
 	#	Need a newer version or add the --posix option
 
 	samtools view -h -F 4 $base.bam | gawk -v base=$base \
