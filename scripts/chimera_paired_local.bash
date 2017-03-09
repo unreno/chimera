@@ -138,7 +138,7 @@ set -x
 
 	#	One line "if-then-else" to determine filetype by last character of first file name.
 #	[ "${1:(-1)}" == 'q' ] && filetype='-q' || filetype='-f'
-	[ "${1:(-1)}" == "q" -o "${1:(-5)}" == "q.bz2" -o "${1:(-4)}" == "q.gz" ] \
+	[ "${lane_1:(-1)}" == "q" -o "${lane_1:(-5)}" == "q.bz2" -o "${lane_1:(-4)}" == "q.gz" ] \
 		&& filetype='-q' || filetype='-f'
 
 	base="$base.bowtie2.$viral.__very_sensitive_local"
@@ -147,7 +147,7 @@ set -x
 	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
 	#	I did try and compare and the final results were identical.
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-		$filetype -1 $1 -2 $s -S $base.sam
+		$filetype -1 $lane_1 -2 $lane_2 -S $base.sam
 
 #		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
 #	samtools does not seem to process STDIN pipe, so can't do that.
@@ -213,6 +213,7 @@ set -x
 			#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
 			#	"near the beginning" means starts at position <= 5
 			if( ( r[6] ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( r[4] <= 5 ) ){
+print "Trimming beginning"
 				split(r[6],a,"S")
 				clip=a[1]-r[4]+1
 #				print ">"$1"_pre" >> pre_out
@@ -223,13 +224,13 @@ set -x
 			#	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
 			#	"near the end" means starts at position >= 5 more than the reference minus the length of the read
 			if( ( r[6] ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( r[4] >= ( ref[r[3]] - length(r[10]) + 5 ) ) ){
+print "trimming end"
 				clip=ref[r[3]]-r[4]+2
 #				print ">"$1"_post" >> post_out
 #				print substr($10,clip) >> post_out
 				r[10]=substr(r[10],clip)
 			}
-
-			return r;
+#			return r;	#	cannot return arrays. Arrays passed as reference so mods made are actual.
 		}
 		BEGIN {
 #			out[1]=sprintf("%s.1.fasta",base)
@@ -252,12 +253,11 @@ set -x
 			if( ( and(l[2],4) && !and(l[2],8) ) || ( !and(l[2],4) && and(l[2],8) ) ){
 				#	If this read unmapped and mate not unmapped (mate mapped) ...
 				if( and(l[2],4) && !and(l[2],8) ){
-					b=trim(b);
+					trim(b);
 				#	If mate read unmapped and this not unmapped (this mapped) ...
 				}else if( !and(l[2],4) && and(l[2],8) ){
-					l=trim(l);
+					trim(l);
 				}
-
 				print_to_fasta( b )
 				print_to_fasta( l )
 			}
