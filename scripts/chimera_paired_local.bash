@@ -206,31 +206,28 @@ set -x
 	samtools view -h $base.sam | gawk -v base=$aligned \
 		'function print_to_fasta(a){
 			lane=(and(a[2],64))?"1":"2";
-			print ">"a[1]"/"lane >> base"_"lane".fasta"
-			print a[10]          >> base"_"lane".fasta"
+			print ">"a[1]"/"lane >> base"."pre_or_post"_"lane".fasta"
+			print a[10]          >> base"."pre_or_post"_"lane".fasta"
 		}
 		function trim(r){
 			#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
 			#	"near the beginning" means starts at position <= 5
 			if( ( r[6] ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( r[4] <= 5 ) ){
-print "Trimming beginning"
-				split(r[6],a,"S")
-				clip=a[1]-r[4]+1
-#				print ">"$1"_pre" >> pre_out
-#				print substr($10,1,clip) >> pre_out
-				r[10]=substr(r[10],1,clip)
+				split(r[6],a,"S");
+				clip=a[1]-r[4]+1;
+				r[10]=substr(r[10],1,clip);
+				pre_or_post="pre";
 			}
 
 			#	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
 			#	"near the end" means starts at position >= 5 more than the reference minus the length of the read
 			if( ( r[6] ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( r[4] >= ( ref[r[3]] - length(r[10]) + 5 ) ) ){
-print "trimming end"
-				clip=ref[r[3]]-r[4]+2
-#				print ">"$1"_post" >> post_out
-#				print substr($10,clip) >> post_out
-				r[10]=substr(r[10],clip)
+				clip=ref[r[3]]-r[4]+2;
+				r[10]=substr(r[10],clip);
+				pre_or_post="post";
 			}
 #			return r;	#	cannot return arrays. Arrays passed as reference so mods made are actual.
+			return pre_or_post;
 		}
 		BEGIN {
 #			out[1]=sprintf("%s.1.fasta",base)
@@ -253,13 +250,21 @@ print "trimming end"
 			if( ( and(l[2],4) && !and(l[2],8) ) || ( !and(l[2],4) && and(l[2],8) ) ){
 				#	If this read unmapped and mate not unmapped (mate mapped) ...
 				if( and(l[2],4) && !and(l[2],8) ){
-					trim(b);
+					before_trim=b[10]
+					pre_or_post=trim(b);
+					if( b[10] != before_trim ){
+						print_to_fasta( b )
+						print_to_fasta( l )
+					}
 				#	If mate read unmapped and this not unmapped (this mapped) ...
 				}else if( !and(l[2],4) && and(l[2],8) ){
-					trim(l);
+					before_trim=l[10]
+					pre_or_post=trim(l);
+					if( l[10] != before_trim ){
+						print_to_fasta( b )
+						print_to_fasta( l )
+					}
 				}
-				print_to_fasta( b )
-				print_to_fasta( l )
 			}
 
 			delete b; delete l;
