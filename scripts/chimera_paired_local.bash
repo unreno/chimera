@@ -140,7 +140,7 @@ set -x
 	[ "${lane_1:(-1)}" == "q" -o "${lane_1:(-5)}" == "q.bz2" -o "${lane_1:(-4)}" == "q.gz" ] \
 		&& filetype='-q' || filetype='-f'
 
-	base="$base.bowtie2.$viral.__very_sensitive_local"
+	base="$base.bowtie2.$viral.very_sensitive_local.paired"
 	aligned="$base.aligned"
 
 	#	I think that using --all here would be a good idea, theoretically.

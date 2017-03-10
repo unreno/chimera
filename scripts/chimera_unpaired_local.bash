@@ -142,7 +142,7 @@ set -x
 	#	Create a string of all files to be passed to bowtie2
 	files=$(echo $* | awk '{printf "-U ";for(i=1;i<NF;i++){printf "%s,",$i};print $NF}')
 
-	base="$base.bowtie2.$viral.__very_sensitive_local"
+	base="$base.bowtie2.$viral.very_sensitive_local.unpaired"
 
 	#	I think that using --all here would be a good idea, theoretically.
 	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
