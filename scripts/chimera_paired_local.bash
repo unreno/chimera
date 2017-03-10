@@ -74,47 +74,47 @@ done
 [ $# -ne 0 ] && usage
 
 
-function positions_within_10bp(){
-	#
-	#	When called like ...
-	#	positions_within_10bp $base.*.bowtie2.$human.$mapq.insertion_points ....
-	#		$1 will be $base.post.bowtie2.$human.$mapq.insertion_points
-	#		$2 will be $base.pre.bowtie2.$human.$mapq.insertion_points
-	#
-	#	Both can be of the format ...
-	#		chr8|99063786
-	#		chr9|105365407
-	#		chrX|74554211
-	#		chrY|14564844
-	#		... OR ...
-	#		chrX:154433612-155433612|68228
-	#		chrX:154433612-155433612|790825
-	#		chrX:93085499-94085499|110644
-	#		chrX:93085499-94085499|112146
-	#		... OR EVEN ...
-	#		chr8|99063786|F
-	#		chr9|105365407|F
-	#		chrX|74554211|R
-	#		chrY|14564844|R
-	#
-	for line in `cat $1` ; do
-		#	echo "line:" $line
-		chr=${line%%|*}	#	remove everything after first pipe (including pipe)
-		#	echo "chr: " $chr    #	chrX or chrX:154433612-155433612
-		line=${line#*|}	#	remove everything before first pipe (including pipe)
-		#	echo "line:" $line   #	74554211 or 790825
-		pos=${line%%|*}	#	remove everything after first pipe (including pipe)
-		#	echo "pos: " $pos    #	74554211 or 790825
-
-		#	Print out the lines with the same reference chromosome
-		#		and a position within 10bp in either direction.
-		awk -F\| -v chr="$chr" -v pos="$pos" '
-			( ( $1 == chr ) && ( (pos-10) < $2 ) && ( (pos+10) > $2 ) ){
-				print
-			}' $2
-
-	done
-}
+#function positions_within_10bp(){
+#	#
+#	#	When called like ...
+#	#	positions_within_10bp $base.*.bowtie2.$human.$mapq.insertion_points ....
+#	#		$1 will be $base.post.bowtie2.$human.$mapq.insertion_points
+#	#		$2 will be $base.pre.bowtie2.$human.$mapq.insertion_points
+#	#
+#	#	Both can be of the format ...
+#	#		chr8|99063786
+#	#		chr9|105365407
+#	#		chrX|74554211
+#	#		chrY|14564844
+#	#		... OR ...
+#	#		chrX:154433612-155433612|68228
+#	#		chrX:154433612-155433612|790825
+#	#		chrX:93085499-94085499|110644
+#	#		chrX:93085499-94085499|112146
+#	#		... OR EVEN ...
+#	#		chr8|99063786|F
+#	#		chr9|105365407|F
+#	#		chrX|74554211|R
+#	#		chrY|14564844|R
+#	#
+#	for line in `cat $1` ; do
+#		#	echo "line:" $line
+#		chr=${line%%|*}	#	remove everything after first pipe (including pipe)
+#		#	echo "chr: " $chr    #	chrX or chrX:154433612-155433612
+#		line=${line#*|}	#	remove everything before first pipe (including pipe)
+#		#	echo "line:" $line   #	74554211 or 790825
+#		pos=${line%%|*}	#	remove everything after first pipe (including pipe)
+#		#	echo "pos: " $pos    #	74554211 or 790825
+#
+#		#	Print out the lines with the same reference chromosome
+#		#		and a position within 10bp in either direction.
+#		awk -F\| -v chr="$chr" -v pos="$pos" '
+#			( ( $1 == chr ) && ( (pos-10) < $2 ) && ( (pos+10) > $2 ) ){
+#				print
+#			}' $2
+#
+#	done
+#}
 
 
 base=`basename $PWD`
@@ -137,11 +137,11 @@ set -x
 	export BOWTIE2_INDEXES
 
 	#	One line "if-then-else" to determine filetype by last character of first file name.
-#	[ "${1:(-1)}" == 'q' ] && filetype='-q' || filetype='-f'
 	[ "${lane_1:(-1)}" == "q" -o "${lane_1:(-5)}" == "q.bz2" -o "${lane_1:(-4)}" == "q.gz" ] \
 		&& filetype='-q' || filetype='-f'
 
 	base="$base.bowtie2.$viral.__very_sensitive_local"
+	aligned="$base.aligned"
 
 	#	I think that using --all here would be a good idea, theoretically.
 	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
@@ -165,8 +165,7 @@ set -x
 		exit $status
 	fi
 
-	aligned="$base.aligned"
-	samtools view -b -F 4 -o $aligned.bam $base.sam
+#	samtools view -b -F 4 -o $aligned.bam $base.sam
 #	rm $base.sam
 
 
@@ -240,7 +239,7 @@ set -x
 		( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4); next; }
 
 		#	Simply for progress
-		( ( !/@SQ/ ) && ( ( NR % 10000 ) == 0 ) ){ print "Read "NR" records" }
+		( ( !/@SQ/ ) && ( ( NR % 100000 ) == 0 ) ){ print "Read "NR" records" }
 
 		#	Non-sequence reference lines, with a mapped reference, matching previous sequence name
 		( ( !/@SQ/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){
@@ -280,96 +279,26 @@ set -x
 	#	-> .2.fasta
 
 
-#	for pre_or_post in pre post ; do
-#
-#		#	Align the chimeric reads to the human reference.
-#		bowtie2 -x $human --threads $threads -f -U $aligned.$pre_or_post.fasta \
-#			-S $aligned.$pre_or_post.bowtie2.$human.sam
-#		status=$?
-#		if [ $status -ne 0 ] ; then
-#			date
-#			echo "bowtie failed with $status"
-#			exit $status
-#		fi
-#
-#		#	Convert to bam and remove the sam.
-#		samtools view -b -o $aligned.$pre_or_post.bowtie2.$human.bam \
-#			$aligned.$pre_or_post.bowtie2.$human.sam
-#		rm $aligned.$pre_or_post.bowtie2.$human.sam
-#
-#
-##	Sadly, this won't work as is.
-##	The TCGA data uses sequence names like "@SRR448740.1 1/1"
-##	When read as unlaned by bowtie, the name truncates at the space.
-##	By doing this the lane is unattainable. We would need to do some renaming.
-##	That would take a bit of time and disk space. What a waste.
-#
-##	Or perhaps run each lane separately into clearly marked files?
-#
-##		gawk -v base=$base -v pre_or_post=$pre_or_post '
-##		BEGIN {
-##			out[1]=sprintf("%s.%s.1.fasta",base,pre_or_post)
-##			out[2]=sprintf("%s.%s.2.fasta",base,pre_or_post)
-##		}
-##		( ( NR == FNR ) && ( /^>/ ) ){
-##			sub(/^>/,"");
-##			split($0,name,"/");
-##			names[name[1]]=name[2];
-##			seqs[name[1]]="";
-##			last=name[1];
-##		}
-##		( ( NR == FNR ) && ( !/^>/ ) ){
-##			seqs[last]=seqs[last] $0
-##		}
-##		( ( NR != FNR ) && ( ! /^@/ ) ) {
-##			split($1,name,"/");
-##			#	sam file: sequence name in fasta, not the same lane, and unmapped
-##			if( ( name[1] in names ) && ( name[2] != names[name[1]] ) && ( and($2,4) ) ) ){
-##
-##				print name[1] "/" names[name[1]] >> out[names[name[1]]]
-##				print seqs[name[1]] >> out[names[name[1]]]
-##				print name[1] "/" name[2] >> out[name[2]]
-##				print $10 >> out[name[2]]
-##
-##			}
-##		}' $aligned.$pre_or_post.fasta $base.sam
-#
-#	done
+	for pre_or_post in pre post ; do
 
-	#	find insertion points
-	#	then find those with the signature overlap
+		#	Align the chimeric reads to the human reference.
+		bowtie2 -x $human --threads $threads -f \
+			-1 $aligned.${pre_or_post}_1.fasta \
+			-2 $aligned.${pre_or_post}_2.fasta \
+			-S $aligned.$pre_or_post.bowtie2.$human.sam
+		status=$?
+		if [ $status -ne 0 ] ; then
+			date
+			echo "bowtie failed with $status"
+			exit $status
+		fi
 
-	#	 f = ALL/YES
-	#	 F = NONE/NOT	(results in double negatives)
-	#	 4 = not aligned
-	#	 8 = mate not aligned
-	#	16 = reverse complement
+		#	Convert to bam and remove the sam.
+		samtools view -b -o $aligned.$pre_or_post.bowtie2.$human.bam \
+			$aligned.$pre_or_post.bowtie2.$human.sam
+		rm $aligned.$pre_or_post.bowtie2.$human.sam
 
-#	echo "Seeking insertion points and overlaps"
-#
-#	for q in 20 10 00 ; do
-#		echo $q
-#		mapq="Q${q}"
-#
-#		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
-#			| awk '{print $3"|"$4+length($10)}' \
-#			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
-#		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
-#			| awk '{print $3"|"$4}' \
-#			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
-#		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.insertion_points \
-#			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
-#
-#		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
-#			| awk '{print $3"|"$4}' \
-#			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
-#		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
-#			| awk '{print $3"|"$4+length($10)}' \
-#			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
-#		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
-#			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
-#
-#	done
+	done
 
 	echo
 	echo "Finished at ..."
