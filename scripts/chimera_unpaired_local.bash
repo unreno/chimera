@@ -280,41 +280,41 @@ set -x
 #		}' $aligned.$pre_or_post.fasta $base.sam
 
 	done
-#
-#	#	find insertion points
-#	#	then find those with the signature overlap
-#
-#	#	 f = ALL/YES
-#	#	 F = NONE/NOT	(results in double negatives)
-#	#	 4 = not aligned
-#	#	 8 = mate not aligned
-#	#	16 = reverse complement
-#
-#	echo "Seeking insertion points and overlaps"
-#
-#	for q in 20 10 00 ; do
-#		echo $q
-#		mapq="Q${q}"
-#
-#		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
-#			| awk '{print $3"|"$4+length($10)}' \
-#			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
-#		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
-#			| awk '{print $3"|"$4}' \
-#			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
-#		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.insertion_points \
-#			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
-#
-#		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
-#			| awk '{print $3"|"$4}' \
-#			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
-#		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
-#			| awk '{print $3"|"$4+length($10)}' \
-#			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
-#		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
-#			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
-#
-#	done
+
+	#	find insertion points
+	#	then find those with the signature overlap
+
+	#	 f = ALL/YES
+	#	 F = NONE/NOT	(results in double negatives)
+	#	 4 = not aligned
+	#	 8 = mate not aligned
+	#	16 = reverse complement
+
+	echo "Seeking insertion points and overlaps"
+
+	for q in 20 10 00 ; do
+		echo $q
+		mapq="Q${q}"
+
+		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
+			| awk '{print $3"|"$4+length($10)}' \
+			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
+		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
+			| awk '{print $3"|"$4}' \
+			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
+		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.insertion_points \
+			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
+
+		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
+			| awk '{print $3"|"$4}' \
+			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
+		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
+			| awk '{print $3"|"$4+length($10)}' \
+			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
+		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
+			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
+
+	done
 
 	echo
 	echo "Finished at ..."

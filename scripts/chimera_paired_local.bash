@@ -74,47 +74,47 @@ done
 [ $# -ne 0 ] && usage
 
 
-#function positions_within_10bp(){
-#	#
-#	#	When called like ...
-#	#	positions_within_10bp $base.*.bowtie2.$human.$mapq.insertion_points ....
-#	#		$1 will be $base.post.bowtie2.$human.$mapq.insertion_points
-#	#		$2 will be $base.pre.bowtie2.$human.$mapq.insertion_points
-#	#
-#	#	Both can be of the format ...
-#	#		chr8|99063786
-#	#		chr9|105365407
-#	#		chrX|74554211
-#	#		chrY|14564844
-#	#		... OR ...
-#	#		chrX:154433612-155433612|68228
-#	#		chrX:154433612-155433612|790825
-#	#		chrX:93085499-94085499|110644
-#	#		chrX:93085499-94085499|112146
-#	#		... OR EVEN ...
-#	#		chr8|99063786|F
-#	#		chr9|105365407|F
-#	#		chrX|74554211|R
-#	#		chrY|14564844|R
-#	#
-#	for line in `cat $1` ; do
-#		#	echo "line:" $line
-#		chr=${line%%|*}	#	remove everything after first pipe (including pipe)
-#		#	echo "chr: " $chr    #	chrX or chrX:154433612-155433612
-#		line=${line#*|}	#	remove everything before first pipe (including pipe)
-#		#	echo "line:" $line   #	74554211 or 790825
-#		pos=${line%%|*}	#	remove everything after first pipe (including pipe)
-#		#	echo "pos: " $pos    #	74554211 or 790825
-#
-#		#	Print out the lines with the same reference chromosome
-#		#		and a position within 10bp in either direction.
-#		awk -F\| -v chr="$chr" -v pos="$pos" '
-#			( ( $1 == chr ) && ( (pos-10) < $2 ) && ( (pos+10) > $2 ) ){
-#				print
-#			}' $2
-#
-#	done
-#}
+function positions_within_10bp(){
+	#
+	#	When called like ...
+	#	positions_within_10bp $base.*.bowtie2.$human.$mapq.insertion_points ....
+	#		$1 will be $base.post.bowtie2.$human.$mapq.insertion_points
+	#		$2 will be $base.pre.bowtie2.$human.$mapq.insertion_points
+	#
+	#	Both can be of the format ...
+	#		chr8|99063786
+	#		chr9|105365407
+	#		chrX|74554211
+	#		chrY|14564844
+	#		... OR ...
+	#		chrX:154433612-155433612|68228
+	#		chrX:154433612-155433612|790825
+	#		chrX:93085499-94085499|110644
+	#		chrX:93085499-94085499|112146
+	#		... OR EVEN ...
+	#		chr8|99063786|F
+	#		chr9|105365407|F
+	#		chrX|74554211|R
+	#		chrY|14564844|R
+	#
+	for line in `cat $1` ; do
+		#	echo "line:" $line
+		chr=${line%%|*}	#	remove everything after first pipe (including pipe)
+		#	echo "chr: " $chr    #	chrX or chrX:154433612-155433612
+		line=${line#*|}	#	remove everything before first pipe (including pipe)
+		#	echo "line:" $line   #	74554211 or 790825
+		pos=${line%%|*}	#	remove everything after first pipe (including pipe)
+		#	echo "pos: " $pos    #	74554211 or 790825
+
+		#	Print out the lines with the same reference chromosome
+		#		and a position within 10bp in either direction.
+		awk -F\| -v chr="$chr" -v pos="$pos" '
+			( ( $1 == chr ) && ( (pos-10) < $2 ) && ( (pos+10) > $2 ) ){
+				print
+			}' $2
+
+	done
+}
 
 
 base=`basename $PWD`
@@ -202,10 +202,39 @@ set -x
 
 
 
+
+
+#	Consider reverse complement???
+#	If aligned read is reverse, then reverse unaligned mate too?
+#	Bowtie bug. If a read aligns reverse complement, it has 16 set.
+#	and, if its mate aligned also, it will have 32 set (its mate aligned reverse complement)
+#	HOWEVER, if its mate did not align, it will not have 32 set.
+#	32 flag is therefore unusable.
+#	In order to keep pair in same orientation. Reverse complement any reverse complement alignments.
+
+
+
+
+#	Reverse complementing here IS mucking with overlapper searching.
+#
+#	I think should be reverse complementing the unaligned mate
+
+
+
+
+
 	samtools view -h $base.sam | gawk -v base=$aligned \
-		'function print_to_fasta(a){
+		'function reverse_complement(s){
+			x=""
+			for(i=length(s);i!=0;i--)
+				x=x comp[substr(s,i,1)];
+			return x;
+		}
+		function print_to_fasta(a){
 			lane=(and(a[2],64))?"1":"2";
 			print ">"a[1]"/"lane >> base"."pre_or_post"_"lane".fasta"
+#			if( and(a[2],16) )
+#				a[10]=reverse_complement(a[10])
 			print a[10]          >> base"."pre_or_post"_"lane".fasta"
 		}
 		function trim(r){
@@ -229,6 +258,10 @@ set -x
 			return pre_or_post;
 		}
 		BEGIN {
+			comp["A"]="T";
+			comp["T"]="A";
+			comp["C"]="G";
+			comp["G"]="C";
 #			out[1]=sprintf("%s.1.fasta",base)
 #			out[2]=sprintf("%s.2.fasta",base)
 			split("",b);split("",l);
@@ -252,6 +285,7 @@ set -x
 					before_trim=b[10]
 					pre_or_post=trim(b);
 					if( b[10] != before_trim ){
+						if( and(b[2],16) ) l[10]=reverse_complement(l[10])
 						print_to_fasta( b )
 						print_to_fasta( l )
 					}
@@ -260,6 +294,7 @@ set -x
 					before_trim=l[10]
 					pre_or_post=trim(l);
 					if( l[10] != before_trim ){
+						if( and(l[2],16) ) b[10]=reverse_complement(b[10])
 						print_to_fasta( b )
 						print_to_fasta( l )
 					}
@@ -299,6 +334,47 @@ set -x
 		rm $aligned.$pre_or_post.bowtie2.$human.sam
 
 	done
+
+
+
+
+
+
+
+
+#	Which one? How to identify the non-chimeric read without comparing?
+
+#	Full length is a decent idea, but not all sets are the same.
+
+
+	echo "Seeking insertion points and overlaps"
+
+	for q in 20 10 00 ; do
+		echo $q
+		mapq="Q${q}"
+
+		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
+			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
+			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
+		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
+			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4}' \
+			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
+		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.insertion_points \
+			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
+
+		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
+			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4}' \
+			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
+		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
+			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
+			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
+		positions_within_10bp $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
+			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
+
+	done
+
+
+
 
 	echo
 	echo "Finished at ..."
