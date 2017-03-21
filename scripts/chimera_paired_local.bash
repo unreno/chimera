@@ -354,12 +354,31 @@ set -x
 
 #	Full length is a decent idea, but not all sets are the same.
 
+#	Why not just dump both?
+
+#	Only interested in the position of the trimmed end.
+
+#	Assume that the shorter of the pair is the trimmed read.
+#	Buffer both reads, output the position of the shortest end?
 
 	echo "Seeking insertion points and overlaps"
 
 	for q in 20 10 00 ; do
 		echo $q
 		mapq="Q${q}"
+
+#		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
+#			| awk '
+##	Non-sequence reference lines, with a mapped reference, not matching previous sequence name
+##	Buffer first occurence of sequence name.
+#( ( !/@SQ/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
+#	for(i=0;i<=NF;i++)b[i]=$i;
+#}
+#( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}
+#
+#' 
+#			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
+
 
 		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
 			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
