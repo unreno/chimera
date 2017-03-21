@@ -237,10 +237,19 @@ set -x
 			exit $status
 		fi
 
-		#	Convert to bam and remove the sam.
-		samtools view -b -o $aligned.$pre_or_post.bowtie2.$human.bam \
+#		#	Convert to bam and remove the sam.
+#		samtools view -b -o $aligned.$pre_or_post.bowtie2.$human.bam \
+#			$aligned.$pre_or_post.bowtie2.$human.sam
+#		rm $aligned.$pre_or_post.bowtie2.$human.sam
+
+		#	SORT and convert to bam and remove the sam.
+		samtools sort -o $aligned.$pre_or_post.bowtie2.$human.bam \
 			$aligned.$pre_or_post.bowtie2.$human.sam
 		rm $aligned.$pre_or_post.bowtie2.$human.sam
+
+		#	Index now so don't have to before running IGV
+		samtools index $aligned.$pre_or_post.bowtie2.$human.bam
+
 
 
 #	Sadly, this won't work as is.
