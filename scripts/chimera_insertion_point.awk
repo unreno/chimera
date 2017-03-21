@@ -1,3 +1,6 @@
+
+#	Expecting direction (F or R), pre_or_post (pre or post)
+
 #  Non-reference lines, with a mapped reference, not matching previous sequence name
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
 	#  Buffer first occurence of sequence name.
@@ -9,16 +12,20 @@
 
 #	For the shortest read ...
 
-#	IF Forward and pre, print
-#			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
+	if( length(l[10]) < length(b[10]) ){
+		for(i=0;i<=NF;i++)s[i]=l[i];
+	} else {
+		for(i=0;i<=NF;i++)s[i]=b[i];
+	}
 
-#	If forward and post, print
-#			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4}' \
-
-#	If reverse and pre, print
-#			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4}' \
-
-#	If reverse and post, print
-#			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
+	if( 
+		( direction == "F" && pre_or_post == "pre" ) ||
+		( direction == "R" && pre_or_post == "post" ) ){
+			print s[3]"|"s[4]+length(s[10])
+	} else if(
+		( direction == "R" && pre_or_post == "pre" ) ||
+		( direction == "F" && pre_or_post == "post" ) ){
+			print s[3]"|"s[4]
+	}
 
 }
