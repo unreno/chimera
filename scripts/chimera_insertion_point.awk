@@ -7,6 +7,8 @@
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){
 	for(i=0;i<=NF;i++)l[i]=$i;
 
+#	For the shortest read ...
+
 #	IF Forward and pre, print
 #			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
 
