@@ -272,10 +272,10 @@ set -x
 		( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4); next; }
 
 		#	Simply for progress
-		( ( !/@SQ/ ) && ( ( NR % 100000 ) == 0 ) ){ print "Read "NR" records" }
+		( ( !/^@/ ) && ( ( NR % 100000 ) == 0 ) ){ print "Read "NR" records" }
 
 		#	Non-sequence reference lines, with a mapped reference, matching previous sequence name
-		( ( !/@SQ/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){
+		( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){
 			for(i=0;i<=NF;i++)l[i]=$i;
 
 			#	1 and only 1 read aligned. Many ways to check this.
@@ -307,7 +307,7 @@ set -x
 
 		#	Non-sequence reference lines, with a mapped reference, not matching previous sequence name
 		#	Buffer first occurence of sequence name.
-		( ( !/@SQ/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
+		( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
 			for(i=0;i<=NF;i++)b[i]=$i;
 		}'
 	#	-> .1.fasta
@@ -371,7 +371,7 @@ set -x
 #			| awk '
 ##	Non-sequence reference lines, with a mapped reference, not matching previous sequence name
 ##	Buffer first occurence of sequence name.
-#( ( !/@SQ/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
+#( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
 #	for(i=0;i<=NF;i++)b[i]=$i;
 #}
 #( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}
