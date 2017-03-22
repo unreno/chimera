@@ -1,6 +1,11 @@
 
 #	Expecting direction (F or R), pre_or_post (pre or post)
 
+BEGIN{
+	#	input is a sam file so specifying tab may be unnecessary, but clarity is nice.
+	FS="\t"
+}
+
 #  Non-reference lines, with a mapped reference, not matching previous sequence name
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
 	#  Buffer first occurence of sequence name.

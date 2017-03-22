@@ -21,6 +21,7 @@
 #	execs can use the same number.
 
 script=`basename $0`
+basedir=`dirname $0`
 human='hg19'
 viral='herv_k113'
 threads=2
@@ -72,50 +73,6 @@ done
 #	Basically, this is TRUE AND DO ...
 #	Should be nothing left.
 [ $# -ne 0 ] && usage
-
-
-#function positions_within_10bp(){
-#	#
-#	#	When called like ...
-#	#	positions_within_10bp $base.*.bowtie2.$human.$mapq.insertion_points ....
-#	#		$1 will be $base.post.bowtie2.$human.$mapq.insertion_points
-#	#		$2 will be $base.pre.bowtie2.$human.$mapq.insertion_points
-#	#
-#	#	Both can be of the format ...
-#	#		chr8|99063786
-#	#		chr9|105365407
-#	#		chrX|74554211
-#	#		chrY|14564844
-#	#		... OR ...
-#	#		chrX:154433612-155433612|68228
-#	#		chrX:154433612-155433612|790825
-#	#		chrX:93085499-94085499|110644
-#	#		chrX:93085499-94085499|112146
-#	#		... OR EVEN ...
-#	#		chr8|99063786|F
-#	#		chr9|105365407|F
-#	#		chrX|74554211|R
-#	#		chrY|14564844|R
-#	#
-#	for line in `cat $1` ; do
-#		#	echo "line:" $line
-#		chr=${line%%|*}	#	remove everything after first pipe (including pipe)
-#		#	echo "chr: " $chr    #	chrX or chrX:154433612-155433612
-#		line=${line#*|}	#	remove everything before first pipe (including pipe)
-#		#	echo "line:" $line   #	74554211 or 790825
-#		pos=${line%%|*}	#	remove everything after first pipe (including pipe)
-#		#	echo "pos: " $pos    #	74554211 or 790825
-#
-#		#	Print out the lines with the same reference chromosome
-#		#		and a position within 10bp in either direction.
-#		awk -F\| -v chr="$chr" -v pos="$pos" '
-#			( ( $1 == chr ) && ( (pos-10) < $2 ) && ( (pos+10) > $2 ) ){
-#				print
-#			}' $2
-#
-#	done
-#}
-
 
 base=`basename $PWD`
 
@@ -184,134 +141,7 @@ set -x
 	#		ie ({4}, {4,}, {4,6})
 	#	Need a newer version or add the --posix option
 
-
-
-
-
-
-#			PAIRED NOW.  NEED TO UPDATE FROM HERE DOWN.
-
-#		GIVEN THE EXTENSIVE LOGIC NEEDED, LIKELY NEED TO CHECK FULL FILE NOT JUST THOSE ALIGNED.
-
-#		As likely won't be getting insertion points from this, 
-#		we won't need to differentiate pre or post?
-
-#	Eventually, the database will contain multiple elements.
-#	HERVs, SINEs, LINEs, SVAs, ...
-#	Include this in the output read? Separate files?
-
-
-
-
-
-#	Consider reverse complement???
-#	If aligned read is reverse, then reverse unaligned mate too?
-#	Bowtie bug. If a read aligns reverse complement, it has 16 set.
-#	and, if its mate aligned also, it will have 32 set (its mate aligned reverse complement)
-#	HOWEVER, if its mate did not align, it will not have 32 set.
-#	32 flag is therefore unusable.
-#	In order to keep pair in same orientation. Reverse complement any reverse complement alignments.
-
-
-
-
-#	Reverse complementing here IS mucking with overlapper searching.
-#
-#	I think should be reverse complementing the unaligned mate
-
-
-
-
-
-	samtools view -h $base.sam | gawk -v base=$aligned \
-		'function reverse_complement(s){
-			x=""
-			for(i=length(s);i!=0;i--)
-				x=x comp[substr(s,i,1)];
-			return x;
-		}
-		function print_to_fasta(a){
-			lane=(and(a[2],64))?"1":"2";
-			print ">"a[1]"/"lane >> base"."pre_or_post"_"lane".fasta"
-#			if( and(a[2],16) )
-#				a[10]=reverse_complement(a[10])
-			print a[10]          >> base"."pre_or_post"_"lane".fasta"
-		}
-		function trim(r){
-			#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
-			#	"near the beginning" means starts at position <= 5
-			if( ( r[6] ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( r[4] <= 5 ) ){
-				split(r[6],a,"S");
-				clip=a[1]-r[4]+1;
-				r[10]=substr(r[10],1,clip);
-				pre_or_post="pre";
-			}
-
-			#	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
-			#	"near the end" means starts at position >= 5 more than the reference minus the length of the read
-			if( ( r[6] ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( r[4] >= ( ref[r[3]] - length(r[10]) + 5 ) ) ){
-				clip=ref[r[3]]-r[4]+2;
-				r[10]=substr(r[10],clip);
-				pre_or_post="post";
-			}
-#			return r;	#	cannot return arrays. Arrays passed as reference so mods made are actual.
-			return pre_or_post;
-		}
-		BEGIN {
-			comp["A"]="T";
-			comp["T"]="A";
-			comp["C"]="G";
-			comp["G"]="C";
-#			out[1]=sprintf("%s.1.fasta",base)
-#			out[2]=sprintf("%s.2.fasta",base)
-			split("",b);split("",l);
-		}
-		#	Store all of the reference lengths
-		#	Ex. @SQ	SN:chr1	LN:249250621
-		#	... ref[chr1] = 249250621
-		( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4); next; }
-
-		#	Simply for progress
-		( ( !/^@/ ) && ( ( NR % 100000 ) == 0 ) ){ print "Read "NR" records" }
-
-		#	Non-sequence reference lines, with a mapped reference, matching previous sequence name
-		( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){
-			for(i=0;i<=NF;i++)l[i]=$i;
-
-			#	1 and only 1 read aligned. Many ways to check this.
-			if( ( and(l[2],4) && !and(l[2],8) ) || ( !and(l[2],4) && and(l[2],8) ) ){
-				#	If this read unmapped and mate not unmapped (mate mapped) ...
-				if( and(l[2],4) && !and(l[2],8) ){
-					before_trim=b[10]
-					pre_or_post=trim(b);
-					if( b[10] != before_trim ){
-						if( and(b[2],16) ) l[10]=reverse_complement(l[10])
-						print_to_fasta( b )
-						print_to_fasta( l )
-					}
-				#	If mate read unmapped and this not unmapped (this mapped) ...
-				}else if( !and(l[2],4) && and(l[2],8) ){
-					before_trim=l[10]
-					pre_or_post=trim(l);
-					if( l[10] != before_trim ){
-						if( and(l[2],16) ) b[10]=reverse_complement(b[10])
-						print_to_fasta( b )
-						print_to_fasta( l )
-					}
-				}
-			}
-
-			delete b; delete l;
-			next; #	do not buffer this line
-		}
-
-		#	Non-sequence reference lines, with a mapped reference, not matching previous sequence name
-		#	Buffer first occurence of sequence name.
-		( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
-			for(i=0;i<=NF;i++)b[i]=$i;
-		}'
-	#	-> .1.fasta
-	#	-> .2.fasta
+	samtools view -h $base.sam | gawk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
 
 
 	for pre_or_post in pre post ; do
@@ -328,11 +158,6 @@ set -x
 			exit $status
 		fi
 
-#		#	Convert to bam and remove the sam.
-#		samtools view -b -o $aligned.$pre_or_post.bowtie2.$human.bam \
-#			$aligned.$pre_or_post.bowtie2.$human.sam
-#		rm $aligned.$pre_or_post.bowtie2.$human.sam
-
 		#	SORT and convert to bam and remove the sam.
 		samtools sort -o $aligned.$pre_or_post.bowtie2.$human.bam \
 			$aligned.$pre_or_post.bowtie2.$human.sam
@@ -342,7 +167,6 @@ set -x
 		samtools index $aligned.$pre_or_post.bowtie2.$human.bam
 
 	done
-
 
 
 

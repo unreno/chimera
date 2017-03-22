@@ -21,6 +21,7 @@
 #	execs can use the same number.
 
 script=`basename $0`
+basedir=`dirname $0`
 human='hg19'
 viral='herv_k113'
 threads=2
@@ -73,8 +74,6 @@ done
 
 #       Basically, this is TRUE AND DO ...
 [ $# -ne 2 ] && usage
-
-
 
 base=`basename $PWD`
 
