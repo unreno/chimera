@@ -144,7 +144,7 @@ set -x
 	#	Need a newer version or add the --posix option
 
 	#	Using -F 4 here again, seems unnecessary.
-	samtools view -h -F 4 $aligned.bam | gawk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
+	samtools view -h -F 4 $aligned.bam | awk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
 
 
 	for pre_or_post in pre post ; do

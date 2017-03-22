@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-
-
 #
 #	When called like ...
 #	chimera_positions_within_10bp.bash $base.*.bowtie2.$human.$mapq.insertion_points ....
@@ -23,21 +21,25 @@
 #		chrX|74554211|R
 #		chrY|14564844|R
 #
-for line in `cat $1` ; do
-	#	echo "line:" $line
-	chr=${line%%|*}	#	remove everything after first pipe (including pipe)
-	#	echo "chr: " $chr    #	chrX or chrX:154433612-155433612
-	line=${line#*|}	#	remove everything before first pipe (including pipe)
-	#	echo "line:" $line   #	74554211 or 790825
-	pos=${line%%|*}	#	remove everything after first pipe (including pipe)
-	#	echo "pos: " $pos    #	74554211 or 790825
+#for line in `cat $1` ; do
+#	#	echo "line:" $line
+#	chr=${line%%|*}	#	remove everything after first pipe (including pipe)
+#	#	echo "chr: " $chr    #	chrX or chrX:154433612-155433612
+#	line=${line#*|}	#	remove everything before first pipe (including pipe)
+#	#	echo "line:" $line   #	74554211 or 790825
+#	pos=${line%%|*}	#	remove everything after first pipe (including pipe)
+#	#	echo "pos: " $pos    #	74554211 or 790825
+#
+#	#	Print out the lines with the same reference chromosome
+#	#		and a position within 10bp in either direction.
+#	awk -F\| -v chr="$chr" -v pos="$pos" '
+#		( ( $1 == chr ) && ( (pos-10) < $2 ) && ( (pos+10) > $2 ) ){
+#			print
+#		}' $2
+#
+#done
 
-	#	Print out the lines with the same reference chromosome
-	#		and a position within 10bp in either direction.
-	awk -F\| -v chr="$chr" -v pos="$pos" '
-		( ( $1 == chr ) && ( (pos-10) < $2 ) && ( (pos+10) > $2 ) ){
-			print
-		}' $2
+basedir=`dirname $0`
 
-done
+awk -f $basedir/chimera_positions_within_10bp.awk $1 $2
 

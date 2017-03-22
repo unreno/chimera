@@ -23,11 +23,11 @@ BEGIN{
 		for(i=0;i<=NF;i++)s[i]=b[i];
 	}
 
-	if( 
+	if( \
 		( direction == "F" && pre_or_post == "pre" ) ||
 		( direction == "R" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]+length(s[10])
-	} else if(
+	} else if( \
 		( direction == "R" && pre_or_post == "pre" ) ||
 		( direction == "F" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]
