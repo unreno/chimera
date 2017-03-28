@@ -2,6 +2,10 @@
 
 
 script=`basename $0`
+viral='herv_k113'
+human='hg19'
+threads=2
+distance=15
 
 function usage(){
 	echo
@@ -14,6 +18,24 @@ function usage(){
 	echo
 	exit
 }
+
+while [ $# -ne 0 ] ; do
+	case $1 in
+		-h|--h*)
+			shift; human=$1; shift ;;
+		-v|--v*)
+			shift; viral=$1; shift ;;
+		-t|--t*)
+			shift; threads=$1; shift ;;
+		-d|--d*)
+			shift; distance=$1; shift ;;
+		-*)
+			echo ; echo "Unexpected args from: ${*}"; usage ;;
+		*)
+			break;;
+	esac
+done
+
 
 [ $# -eq 0 ] && usage
 
@@ -38,7 +60,6 @@ set -x
 		#	sample = /genepi2/ccls/data/raw/TCGA_Glioma_HERV52/TCGA-06-0155-10A-01D-0703-09.HERV52.bam.gz
 		gz_link=${sample##*/}      # TCGA-06-0155-10A-01D-0703-09.HERV52.bam.gz
 		bam=${gz_link%%.gz}        # TCGA-06-0155-10A-01D-0703-09.HERV52.bam
-#		fastq_base=${bam%%.bam}    # TCGA-06-0155-10A-01D-0703-09.HERV52
 		sample_base=${gz_link%%.*} # TCGA-06-0155-10A-01D-0703-09
 
 		mkdir -p $sample_base
@@ -52,9 +73,11 @@ set -x
 
 		rm -f $bam
 
-		chimera_paired_local.bash -v SVAs_and_HERVKs --distance 15 -1 $sample_base.1.fastq -2 $sample_base.2.fastq
+		chimera_paired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
+			-1 $sample_base.1.fastq -2 $sample_base.2.fastq
 
-		chimera_unpaired_local.bash -v SVAs_and_HERVKs --distance 15 $sample_base.1.fastq,$sample_base.2.fastq
+		chimera_unpaired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
+			$sample_base.1.fastq,$sample_base.2.fastq
 
 		rm $sample_base.1.fastq $sample_base.2.fastq
 
@@ -65,13 +88,13 @@ set -x
 
 		for p in paired unpaired ; do
 
-			insertion_points_to_table.sh \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
+			insertion_points_to_table.bash \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
 
-			mv tmpfile.\*Q${q}\*points.* ${p}_insertion_points.hg19.Q${q}
+			mv tmpfile.\*${p}Q${q}\*points.* ${p}_insertion_points.hg19.Q${q}
 
-			overlappers_to_table.sh \*.${p}\*Q${q}\*overlappers > ${p}_overlappers_table.Q${q}.csv
+			overlappers_to_table.bash \*.${p}\*Q${q}\*overlappers > ${p}_overlappers_table.Q${q}.csv
 
-			mv tmpfile.\*Q${q}\*overlappers.* ${p}_overlappers.hg19.Q${q}
+			mv tmpfile.\*${p}Q${q}\*overlappers.* ${p}_overlappers.hg19.Q${q}
 
 		done	#	paired unpaired
 
