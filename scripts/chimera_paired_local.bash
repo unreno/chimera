@@ -127,7 +127,7 @@ set -x
 	fi
 
 	#	keep for reference
-	samtools view -b -F 4 -o $aligned.bam $base.sam
+	samtools view -b -F 4 -f 8 -o $aligned.bam $base.sam
 
 	#	requires bash >= 4.0
 	#	${VARIABLE^^} converts to uppercase
