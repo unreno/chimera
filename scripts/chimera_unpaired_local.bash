@@ -25,6 +25,7 @@ basedir=`dirname $0`
 human='hg19'
 viral='herv_k113'
 threads=2
+distance=10
 
 function usage(){
 	echo
@@ -33,12 +34,13 @@ function usage(){
 	echo "Searches for reads that are part viral, part human."
 	echo "Completely ignores any laning."
 	echo
-	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] <fastq file(s)>"
+	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] [--distance INTEGER] <fastq file(s)>"
 	echo
 	echo "Defaults:"
 	echo "  human ..... : $human"
 	echo "  viral ..... : $viral"
 	echo "  threads ... : $threads (for bowtie2)"
+	echo "  distance .. : $distance (for overlappers)"
 	echo
 	echo "Note: all output files will be based on the working directory's name"
 	echo
@@ -61,6 +63,8 @@ while [ $# -ne 0 ] ; do
 			shift; viral=$1; shift ;;
 		-t|--t*)
 			shift; threads=$1; shift ;;
+		-d|--d*)
+			shift; distance=$1; shift ;;
 		-*)
 			echo ; echo "Unexpected args from: ${*}"; usage ;;
 		*)
@@ -190,7 +194,8 @@ set -x
 		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
 			| awk '{print $3"|"$4}' \
 			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
-		awk -f $basedir/chimera_positions_within.awk $aligned.*.bowtie2.$human.$mapq.insertion_points \
+		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+			$aligned.*.bowtie2.$human.$mapq.insertion_points \
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
 
 		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
@@ -199,7 +204,8 @@ set -x
 		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
 			| awk '{print $3"|"$4+length($10)}' \
 			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
-		awk -f $basedir/chimera_positions_within.awk $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
+		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+			$aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
 
 	done

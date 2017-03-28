@@ -35,27 +35,26 @@ set -x
 		echo $sample
 		cd $working_dir
 
-		sample_base=${sample##*/}
-		sample_base=${sample_base%%.*}
+		#	sample = /genepi2/ccls/data/raw/TCGA_Glioma_HERV52/TCGA-06-0155-10A-01D-0703-09.HERV52.bam.gz
+		gz_link=${sample##*/}      # TCGA-06-0155-10A-01D-0703-09.HERV52.bam.gz
+		bam=${gz_link%%.gz}        # TCGA-06-0155-10A-01D-0703-09.HERV52.bam
+#		fastq_base=${bam%%.bam}    # TCGA-06-0155-10A-01D-0703-09.HERV52
+		sample_base=${gz_link%%.*} # TCGA-06-0155-10A-01D-0703-09
 
 		mkdir -p $sample_base
 		cd $sample_base
 
 		ln -s $sample
-		gunzip -f $sample	
+		gunzip -f $gz_link
 		#	will also remove link
 
-		bam=${sample%%.gz}
-		echo $bam
+		bamToFastq -i $bam -fq $sample_base.1.fastq -fq2 $sample_base.2.fastq
 
-		fastq_base=${bam%%.bam}
-		echo $fastq_base
+		rm $bam
 
-		bamToFastq -i $bam -fq $fastq_base.1.fastq -fq2 $fastq_base.2.fastq
+		chimera_paired_local.bash -v SVAs_and_HERVKs --distance 15 -1 $sample_base.1.fastq -2 $sample_base.2.fastq
 
-		chimera_paired_local.bash -v SVAs_and_HERVKs -1 $fastq_base.1.fastq -2 $fastq_base.2.fastq
-
-		chimera_unpaired_local.bash -v SVAs_and_HERVKs $fastq_base.1.fastq,$fastq_base.2.fastq
+		chimera_unpaired_local.bash -v SVAs_and_HERVKs --distance 15 $sample_base.1.fastq,$sample_base.2.fastq
 
 		shift
 	done
