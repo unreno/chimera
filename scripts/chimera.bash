@@ -20,7 +20,7 @@ function usage(){
 #	Print a lot more stuff
 set -x
 
-{
+#{
 	echo "Starting at ..."
 	date
 
@@ -50,17 +50,38 @@ set -x
 
 		bamToFastq -i $bam -fq $sample_base.1.fastq -fq2 $sample_base.2.fastq
 
-		rm $bam
+		rm -f $bam
 
 		chimera_paired_local.bash -v SVAs_and_HERVKs --distance 15 -1 $sample_base.1.fastq -2 $sample_base.2.fastq
 
 		chimera_unpaired_local.bash -v SVAs_and_HERVKs --distance 15 $sample_base.1.fastq,$sample_base.2.fastq
 
+		rm $sample_base.1.fastq $sample_base.2.fastq
+
 		shift
 	done
+
+	for q in 20 10 00 ; do
+
+		for p in paired unpaired ; do
+
+			insertion_points_to_table.sh \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
+
+			mv tmpfile.\*Q${q}\*points.* ${p}_insertion_points.hg19.Q${q}
+
+			overlappers_to_table.sh \*.${p}\*Q${q}\*overlappers > ${p}_overlappers_table.Q${q}.csv
+
+			mv tmpfile.\*Q${q}\*overlappers.* ${p}_overlappers.hg19.Q${q}
+
+		done	#	paired unpaired
+
+	done	#	20 10 00
 
 	echo
 	echo "Finished at ..."
 	date
 
-} 1>>$script.out 2>&1 &
+#} 1>>$script.out 2>&1 
+
+#	Don't run in background by default
+#	&
