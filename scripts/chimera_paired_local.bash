@@ -122,9 +122,8 @@ set -x
 		exit $status
 	fi
 
-#	samtools view -b -F 4 -o $aligned.bam $base.sam
-#	rm $base.sam
-
+	#	keep for reference
+	samtools view -b -F 4 -o $aligned.bam $base.sam
 
 	#	requires bash >= 4.0
 	#	${VARIABLE^^} converts to uppercase
@@ -143,6 +142,7 @@ set -x
 
 	samtools view -h $base.sam | awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
 
+	rm $base.sam
 
 	for pre_or_post in pre post ; do
 
@@ -168,22 +168,6 @@ set -x
 
 	done
 
-
-
-
-
-
-
-#	Which one? How to identify the non-chimeric read without comparing?
-
-#	Full length is a decent idea, but not all sets are the same.
-
-#	Why not just dump both?
-
-#	Only interested in the position of the trimmed end.
-
-#	Assume that the shorter of the pair is the trimmed read.
-#	Buffer both reads, output the position of the shortest end?
 
 	echo "Seeking insertion points and overlaps"
 

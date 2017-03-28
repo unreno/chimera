@@ -125,7 +125,7 @@ set -x
 
 	aligned="$base.aligned"
 	samtools view -b -F 4 -o $aligned.bam $base.sam
-#	rm $base.sam
+	rm $base.sam
 
 
 	#	requires bash >= 4.0
