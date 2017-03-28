@@ -1,6 +1,6 @@
 #
 #	When called like ...
-#	awk -f chimera_positions_within_10bp.awk $base.*.bowtie2.$human.$mapq.insertion_points ....
+#	awk -f chimera_positions_within.awk $base.*.bowtie2.$human.$mapq.insertion_points ....
 #		$1 will be $base.post.bowtie2.$human.$mapq.insertion_points
 #		$2 will be $base.pre.bowtie2.$human.$mapq.insertion_points
 #
@@ -23,13 +23,14 @@
 
 BEGIN {
 	FS="|"
+	if( distance == "" ) distance=10
 }
 ( NR == FNR ){
 	positions[$1][$2]++
 }
 ( NR != FNR && $1 in positions ){
 	for( pos in positions[$1] )
-		if( ( (pos-10) < $2 ) && ( (pos+10) > $2 ) )
+		if( ( (pos-distance) < $2 ) && ( (distance+10) > $2 ) )
 			for( i=0; i<positions[$1][pos]; i++ )
 				print
 }

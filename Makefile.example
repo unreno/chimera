@@ -46,7 +46,9 @@ install-scripts: uninstall-scripts
 	$(MKDIR) $(BASE_BIN_DIR)/$(APPS_SUBDIR)
 	@printf "\nINSTALLING SCRIPTS\n\n"
 
-	cp scripts/* $(BASE_BIN_DIR)/$(APPS_SUBDIR)/
+	#	As the scripts dir contains other dirs which won't copy,
+	#	we need to suppress the error by returning true or make will quit.
+	cp scripts/* $(BASE_BIN_DIR)/$(APPS_SUBDIR)/ || :
 
 	cd $(BASE_BIN_DIR); \
 	for file in `find $(APPS_SUBDIR) -type f` ; do \

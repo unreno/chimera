@@ -24,7 +24,6 @@ script=`basename $0`
 basedir=`dirname $0`
 human='hg19'
 viral='herv_k113'
-threads=2
 
 function usage(){
 	echo
@@ -33,12 +32,11 @@ function usage(){
 	echo "Searches for reads that are part viral, part human."
 	echo "Completely ignores any laning."
 	echo
-	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] <fastq file(s)>"
+	echo "$script [--human STRING] [--viral STRING] <fastq file(s)>"
 	echo
 	echo "Defaults:"
 	echo "  human ..... : $human"
 	echo "  viral ..... : $viral"
-	echo "  threads ... : $threads (for bowtie2)"
 	echo
 	echo "Note: all output files will be based on the working directory's name"
 	echo
@@ -70,7 +68,8 @@ done
 
 
 #       Basically, this is TRUE AND DO ...
-[ $# -eq 0 ] && usage
+#[ $# -eq 0 ] && usage
+
 
 base=`basename $PWD`
 
@@ -81,102 +80,9 @@ set -x
 	echo "Starting at ..."
 	date
 
-	#indexes=/Volumes/cube/working/indexes
-	#	leading with the ": " stops execution
-	#	just ${BOWTIE2_INDEXES:"/Volumes/cube/working/indexes"}
-	#	would try to execute the result.  I just want the OR/EQUALS feature
-	#: ${BOWTIE2_INDEXES:="/Volumes/cube/working/indexes"}
-	: ${BOWTIE2_INDEXES:="$HOME/BOWTIE2_INDEXES"}
+	base="$base.bowtie2.$viral.very_sensitive_local"
 
-	#	they MUST be exported, to be picked up by bowtie2
-	export BOWTIE2_INDEXES
-
-	#	One line "if-then-else" to determine filetype by last character of first file name.
-#	[ "${1:(-1)}" == 'q' ] && filetype='-q' || filetype='-f'
-	[ "${1:(-1)}" == "q" -o "${1:(-5)}" == "q.bz2" -o "${1:(-4)}" == "q.gz" ] \
-		&& filetype='-q' || filetype='-f'
-
-	#	Create a string of all files to be passed to bowtie2
-	files=$(echo $* | awk '{printf "-U ";for(i=1;i<NF;i++){printf "%s,",$i};print $NF}')
-
-	base="$base.bowtie2.$viral.very_sensitive_local.unpaired"
-
-	#	I think that using --all here would be a good idea, theoretically.
-	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
-	#	I did try and compare and the final results were identical.
-	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-		$filetype $files -S $base.sam
-
-#		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
-#	samtools does not seem to process STDIN pipe, so can't do that.
-#	Actually, it may but you might have to use - as the filename.
-
-#	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
-#	That would remove the need to convert and delete later.
-#	Would save on disk space if that's an issue.
-#	May require more memory to do the pipe processing though.
-
-	status=$?
-	if [ $status -ne 0 ] ; then
-		date
-		echo "bowtie failed with $status"
-		exit $status
-	fi
-
-	aligned="$base.aligned"
-	samtools view -b -F 4 -o $aligned.bam $base.sam
-#	rm $base.sam
-
-
-	#	requires bash >= 4.0
-	#	${VARIABLE^^} converts to uppercase
-	#	${VARIABLE,,} converts to lowercase
-
-	#
-	#	Find alignments that align past the appropriate end of the ends of the ltr.
-	#
-	#    f4 = unmapped
-	#    F4 = NOT unmapped = mapped
-	#    F8 = mate NOT unmapped = mate mapped
-	#
-	#	Older versions of awk do not directly support "interval expressions",
-	#		ie ({4}, {4,}, {4,6})
-	#	Need a newer version or add the --posix option
-
-	#	Using -F 4 here again, seems unnecessary.
-	samtools view -h -F 4 $aligned.bam | gawk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
-
-
-	for pre_or_post in pre post ; do
-
-		#	Align the chimeric reads to the human reference.
-		bowtie2 -x $human --threads $threads -f -U $aligned.$pre_or_post.fasta \
-			-S $aligned.$pre_or_post.bowtie2.$human.sam
-		status=$?
-		if [ $status -ne 0 ] ; then
-			date
-			echo "bowtie failed with $status"
-			exit $status
-		fi
-
-		#	SORT and convert to bam and remove the sam.
-		samtools sort -o $aligned.$pre_or_post.bowtie2.$human.bam \
-			$aligned.$pre_or_post.bowtie2.$human.sam
-		rm $aligned.$pre_or_post.bowtie2.$human.sam
-
-		#	Index now so don't have to before running IGV
-		samtools index $aligned.$pre_or_post.bowtie2.$human.bam
-
-	done
-
-	#	find insertion points
-	#	then find those with the signature overlap
-
-	#	 f = ALL/YES
-	#	 F = NONE/NOT	(results in double negatives)
-	#	 4 = not aligned
-	#	 8 = mate not aligned
-	#	16 = reverse complement
+	aligned="$base.paired.aligned"
 
 	echo "Seeking insertion points and overlaps"
 
@@ -185,19 +91,19 @@ set -x
 		mapq="Q${q}"
 
 		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
-			| awk '{print $3"|"$4+length($10)}' \
+			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
 		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
-			| awk '{print $3"|"$4}' \
+			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4}' \
 			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
 		awk -f $basedir/chimera_positions_within.awk $aligned.*.bowtie2.$human.$mapq.insertion_points \
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
 
 		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
-			| awk '{print $3"|"$4}' \
+			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4}' \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
 		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
-			| awk '{print $3"|"$4+length($10)}' \
+			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
 			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
 		awk -f $basedir/chimera_positions_within.awk $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers

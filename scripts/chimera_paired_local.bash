@@ -191,32 +191,13 @@ set -x
 		echo $q
 		mapq="Q${q}"
 
-#		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
-#			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
-#			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
-#		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
-#			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4}' \
-#			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
-#		chimera_positions_within_10bp.bash $aligned.*.bowtie2.$human.$mapq.insertion_points \
-#			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
-#
-#		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
-#			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4}' \
-#			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
-#		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
-#			| awk '( $6 != "*" && $6 != "101M" ){print $3"|"$4+length($10)}' \
-#			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
-#		chimera_positions_within_10bp.bash $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
-#			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
-
 		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=pre \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
 		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=post \
 			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
-#		chimera_positions_within_10bp.bash $aligned.*.bowtie2.$human.$mapq.insertion_points \
-		awk -f $basedir/chimera_positions_within_10bp.awk $aligned.*.bowtie2.$human.$mapq.insertion_points \
+		awk -f $basedir/chimera_positions_within.awk $aligned.*.bowtie2.$human.$mapq.insertion_points \
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
 
 		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
@@ -225,8 +206,7 @@ set -x
 		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=post \
 			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
-#		chimera_positions_within_10bp.bash $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
-		awk -f $basedir/chimera_positions_within_10bp.awk $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
+		awk -f $basedir/chimera_positions_within.awk $aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
 
 	done

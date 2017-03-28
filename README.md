@@ -94,3 +94,19 @@ SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q00.inserti
 SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q00.rc_insertion_points.rc_overlappers
 ```
 
+
+
+
+
+
+
+
+## Notes
+
+More descriptive named script chimera_unpaired_local.bash is the same as chimera_insertions_and_overlappers.bash.
+
+
+Deving chimera_paired_local.bash
+
+
+
