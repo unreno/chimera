@@ -214,7 +214,10 @@ set -x
 	echo "Finished at ..."
 	date
 
-} 1>>$base.$script.out 2>&1 &
+} 1>>$base.$script.out 2>&1 
+
+#	Don't run in the background by default
+#	&
 
 
 #		REFERENCES
