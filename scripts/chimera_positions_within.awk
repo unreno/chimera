@@ -30,7 +30,7 @@ BEGIN {
 }
 ( NR != FNR && $1 in positions ){
 	for( pos in positions[$1] )
-		if( ( (pos-distance) < $2 ) && ( (distance+10) > $2 ) )
+		if( ( (pos-distance) < $2 ) && ( (pos+distance) > $2 ) )
 			for( i=0; i<positions[$1][pos]; i++ )
 				print
 }
