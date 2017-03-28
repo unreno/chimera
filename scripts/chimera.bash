@@ -42,14 +42,14 @@ done
 #	Print a lot more stuff
 set -x
 
-#{
+#/bin/rm -rf working_dir
+mkdir -p working_dir
+cd working_dir
+working_dir=$PWD
+
+{
 	echo "Starting at ..."
 	date
-
-#	/bin/rm -rf working_dir
-	mkdir -p working_dir
-	cd working_dir
-	working_dir=$PWD
 
 	while [ $# -ne 0 ] ; do
 		sample=$1
@@ -104,7 +104,7 @@ set -x
 	echo "Finished at ..."
 	date
 
-#} 1>>$script.out 2>&1 
+} 1>>$working_dir/$script.out 2>&1 
 
 #	Don't run in background by default
 #	&
