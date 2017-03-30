@@ -39,13 +39,14 @@ done
 
 [ $# -eq 0 ] && usage
 
-#	Print a lot more stuff
-set -x
-
 #/bin/rm -rf working_dir
 mkdir -p working_dir
 cd working_dir
 working_dir=$PWD
+
+
+#	Print a lot more stuff
+set -x
 
 {
 	echo "Starting at ..."
@@ -83,6 +84,9 @@ working_dir=$PWD
 
 		shift
 	done
+
+	#	This is kinda important!
+	cd $working_dir
 
 	for q in 20 10 00 ; do
 
