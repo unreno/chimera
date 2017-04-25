@@ -62,6 +62,9 @@ clean: clean-all $(TARGETS:%=clean-%)
 clean-all:
 	@printf "\nCLEANING ALL\n\n"
 
+.PHONY : test
+
 test:
-	@printf "\nTesting is nice, but not today\n\n"
+	@cd test/; test.bash
+
 
