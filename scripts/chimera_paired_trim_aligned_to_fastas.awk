@@ -1,5 +1,9 @@
 #	samtools view -h $base.sam | gawk -v base=$aligned \
 #		'
+
+#	This script requires that the input bam file be sorted in such a fashion
+#	that the reads are grouped together in pairs.
+
 function reverse_complement(s){
 	x=""
 	for(i=length(s);i!=0;i--)
