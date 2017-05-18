@@ -20,7 +20,7 @@ BEGIN {
 	post_out=sprintf("%s.post.fasta",base)
 }
 #	Simply for progress
-( ( !/^@/ ) && ( ( NR % 100000 ) == 0 ) ){ print "Read "NR" records" }
+( ( !/^@/ ) && ( ( NR % 1000000 ) == 0 ) ){ print "Read "NR" records" }
 
 #	Ex. @SQ	SN:chr1	LN:249250621
 #	... ref[chr1] = 249250621

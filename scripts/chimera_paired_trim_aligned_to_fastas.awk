@@ -52,7 +52,7 @@ BEGIN {
 ( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4); next; }
 
 #	Simply for progress
-( ( !/^@/ ) && ( ( NR % 100000 ) == 0 ) ){ print "Read "NR" records" }
+( ( !/^@/ ) && ( ( NR % 1000000 ) == 0 ) ){ print "Read "NR" records" }
 
 #	Non-sequence reference lines, with a mapped reference, matching previous sequence name
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){
