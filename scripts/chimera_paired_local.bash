@@ -77,6 +77,8 @@ done
 #	Basically, this is TRUE AND DO ...
 #	Should be nothing left.
 [ $# -ne 0 ] && usage
+[ -z $lane_1 ] && usage
+[ -z $lane_2 ] && usage
 
 base=`basename $PWD`
 
@@ -104,49 +106,88 @@ set -x
 	base="$base.bowtie2.$viral.very_sensitive_local.paired"
 	aligned="$base.aligned"
 
-	#	I think that using --all here would be a good idea, theoretically.
-	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
-	#	I did try and compare and the final results were identical.
+
+
+
+
+
+#	#	I think that using --all here would be a good idea, theoretically.
+#	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
+#	#	I did try and compare and the final results were identical.
+#	bowtie2 --very-sensitive-local --threads $threads -x $viral \
+#		$filetype -1 $lane_1 -2 $lane_2 -S $base.sam
+#
+##		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
+##	samtools does not seem to process STDIN pipe, so can't do that.
+##	Actually, it may but you might have to use - as the filename.
+#
+##	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
+##	That would remove the need to convert and delete later.
+##	Would save on disk space if that's an issue.
+##	May require more memory to do the pipe processing though.
+#
+#	status=$?
+#	if [ $status -ne 0 ] ; then
+#		date
+#		echo "bowtie failed with $status"
+#		exit $status
+#	fi
+#
+#	#	keep for reference
+#	samtools view -b -F 4 -f 8 -o $aligned.bam $base.sam
+#
+#	#	requires bash >= 4.0
+#	#	${VARIABLE^^} converts to uppercase
+#	#	${VARIABLE,,} converts to lowercase
+#
+#	#
+#	#	Find alignments that align past the appropriate end of the ends of the ltr.
+#	#
+#	#    f4 = unmapped
+#	#    F4 = NOT unmapped = mapped
+#	#    F8 = mate NOT unmapped = mate mapped
+#	#
+#	#	Older versions of awk do not directly support "interval expressions",
+#	#		ie ({4}, {4,}, {4,6})
+#	#	Need a newer version or add the --posix option
+#
+#	samtools view -h $base.sam | awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
+#
+#	rm $base.sam
+
+
+
+
+
+
+
+
+
+
+
+
+
+	#	Less disk
+
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-		$filetype -1 $lane_1 -2 $lane_2 -S $base.sam
+		$filetype -1 $lane_1 -2 $lane_2 | samtools view -b -o $base.bam -
 
-#		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
-#	samtools does not seem to process STDIN pipe, so can't do that.
-#	Actually, it may but you might have to use - as the filename.
+	samtools view -b -F 4 -f 8 -o $aligned.bam $base.bam
 
-#	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
-#	That would remove the need to convert and delete later.
-#	Would save on disk space if that's an issue.
-#	May require more memory to do the pipe processing though.
+	samtools view -h $base.bam | awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
 
-	status=$?
-	if [ $status -ne 0 ] ; then
-		date
-		echo "bowtie failed with $status"
-		exit $status
-	fi
 
-	#	keep for reference
-	samtools view -b -F 4 -f 8 -o $aligned.bam $base.sam
 
-	#	requires bash >= 4.0
-	#	${VARIABLE^^} converts to uppercase
-	#	${VARIABLE,,} converts to lowercase
 
-	#
-	#	Find alignments that align past the appropriate end of the ends of the ltr.
-	#
-	#    f4 = unmapped
-	#    F4 = NOT unmapped = mapped
-	#    F8 = mate NOT unmapped = mate mapped
-	#
-	#	Older versions of awk do not directly support "interval expressions",
-	#		ie ({4}, {4,}, {4,6})
-	#	Need a newer version or add the --posix option
 
-	samtools view -h $base.sam | awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
 
-	rm $base.sam
+
+
+
+
+
+
+
 
 	for pre_or_post in pre post ; do
 
