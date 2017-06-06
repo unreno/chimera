@@ -33,7 +33,7 @@ function usage(){
 	echo
 	echo "Searches for reads that are part viral, part human."
 	echo
-	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] [--distance INTEGER] -1 <lane 1 fast[aq] file(s)> -2 <lane 2 fast[aq] file(s)"
+	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] [--distance INTEGER] [-1 <lane 1 fast[aq] file(s)> -2 <lane 2 fast[aq] file(s)>] [--bam <sorted by name, laned bam file to be split>]"
 	echo
 	echo "Defaults:"
 	echo "  human ..... : $human"
@@ -66,6 +66,8 @@ while [ $# -ne 0 ] ; do
 			shift; lane_1=$1; shift ;;
 		-2)
 			shift; lane_2=$1; shift ;;
+		-b|--b*)
+			shift; bam=$1; shift ;;
 		-*)
 			echo ; echo "Unexpected args from: ${*}"; usage ;;
 		*)
@@ -77,8 +79,21 @@ done
 #	Basically, this is TRUE AND DO ...
 #	Should be nothing left.
 [ $# -ne 0 ] && usage
-[ -z $lane_1 ] && usage
-[ -z $lane_2 ] && usage
+#[ -z $lane_1 ] && usage
+#[ -z $lane_2 ] && usage
+
+if [ ! -z $bam ] ; then
+	lane_1=${bam%.*}.1.fastq
+	lane_2=${bam%.*}.2.fastq
+else
+	if [ -z $lane_1 ] || [ -z $lane_2 ] ; then
+		usage
+	fi
+fi
+
+#echo "bam:$bam:"
+#echo "lane_1:$lane_1:"
+#echo "lane_2:$lane_2:"
 
 base=`basename $PWD`
 
@@ -88,6 +103,14 @@ set -x
 {
 	echo "Starting at ..."
 	date
+
+	if [ -f $bam ] ; then
+		bamToFastq -i $bam -fq $lane_1 -fq2 $lane2
+	else
+		echo "$bam doesn't exist."
+		exit 9999
+	fi
+
 
 	#indexes=/Volumes/cube/working/indexes
 	#	leading with the ": " stops execution
