@@ -105,7 +105,7 @@ set -x
 	date
 
 	if [ -f $bam ] ; then
-		bamToFastq -i $bam -fq $lane_1 -fq2 $lane2
+		bamToFastq -i $bam -fq $lane_1 -fq2 $lane_2
 	else
 		echo "$bam doesn't exist."
 		exit 9999
