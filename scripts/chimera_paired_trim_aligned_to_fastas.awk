@@ -1,8 +1,9 @@
 #	samtools view -h $base.sam | gawk -v base=$aligned \
-#		'
 
 #	This script requires that the input bam file be sorted in such a fashion
-#	that the reads are grouped together in pairs.
+#	that the reads are grouped together in pairs. (sort by name)
+#	As the output fasta files will be used with bowtie2,
+#	they too need to be in sync by actual pair.
 
 function reverse_complement(s){
 	x=""
@@ -13,8 +14,6 @@ function reverse_complement(s){
 function print_to_fasta(a){
 	lane=(and(a[2],64))?"1":"2";
 	print ">"a[1]"/"lane >> base"."pre_or_post"_"lane".fasta"
-#			if( and(a[2],16) )
-#				a[10]=reverse_complement(a[10])
 	print a[10]          >> base"."pre_or_post"_"lane".fasta"
 }
 function trim(r){
@@ -42,8 +41,6 @@ BEGIN {
 	comp["T"]="A";
 	comp["C"]="G";
 	comp["G"]="C";
-#			out[1]=sprintf("%s.1.fasta",base)
-#			out[2]=sprintf("%s.2.fasta",base)
 	split("",b);split("",l);
 }
 #	Store all of the reference lengths
@@ -52,7 +49,7 @@ BEGIN {
 ( /^@SQ/ ){ ref[substr($2,4)] = substr($3,4); next; }
 
 #	Simply for progress
-( ( !/^@/ ) && ( ( NR % 1000000 ) == 0 ) ){ print "Read "NR" records" }
+( ( !/^@/ ) && ( ( NR % 10000000 ) == 0 ) ){ print "Read "NR" records" }
 
 #	Non-sequence reference lines, with a mapped reference, matching previous sequence name
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){

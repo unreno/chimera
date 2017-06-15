@@ -195,7 +195,8 @@ set -x
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype -1 $lane_1 -2 $lane_2 | samtools view -b -o $base.bam -
 
-	samtools view -b -F 4 -f 8 -o $aligned.bam $base.bam
+#	Unused and unneeded
+#	samtools view -b -F 4 -f 8 -o $aligned.bam $base.bam
 
 	samtools view -h $base.bam | awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
 
