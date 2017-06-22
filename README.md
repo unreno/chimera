@@ -107,14 +107,17 @@ Install Docker, make a new empty temp directory and create a file "Dockerfile" w
 FROM ubuntu
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV SAMTOOLS_VERSION="1.5"
+ENV BOWTIE2_VERSION="2.3.2"
+WORKDIR=$HOME
  
 RUN apt-get update && apt-get install -y apt-utils dialog bzip2 gcc gawk zlib1g-dev libbz2-dev liblzma-dev libcurl4-openssl-dev make libssl-dev libncurses5-dev zip g++ git libtbb-dev wget && apt-get clean
 
-RUN cd / && wget https://github.com/samtools/htslib/releases/download/1.5/htslib-1.5.tar.bz2 && tar xvfj htslib-1.5.tar.bz2 && cd htslib-1.5 && ./configure && make && make install && cd ~ && /bin/rm -rf /htslib-1.5*
+RUN cd / && wget https://github.com/samtools/htslib/releases/download/${SAMTOOLS_VERSION}/htslib-${SAMTOOLS_VERSION}.tar.bz2 && tar xvfj htslib-${SAMTOOLS_VERSION}.tar.bz2 && cd htslib-${SAMTOOLS_VERSION} && ./configure && make && make install && cd ~ && /bin/rm -rf /htslib-${SAMTOOLS_VERSION}*
  
-RUN cd / && wget https://github.com/samtools/samtools/releases/download/1.5/samtools-1.5.tar.bz2 && tar xvfj samtools-1.5.tar.bz2 && cd samtools-1.5 && ./configure && make && make install && cd ~ && /bin/rm -rf /samtools-1.5*
+RUN cd / && wget https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2 && tar xvfj samtools-${SAMTOOLS_VERSION}.tar.bz2 && cd samtools-${SAMTOOLS_VERSION} && ./configure && make && make install && cd ~ && /bin/rm -rf /samtools-${SAMTOOLS_VERSION}*
 
-RUN cd / && wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.2/bowtie2-2.3.2-source.zip/download -O bowtie2-2.3.2-source.zip && unzip bowtie2-2.3.2-source.zip && cd bowtie2-2.3.2 && make && make install && cd ~ && /bin/rm -rf /bowtie2-2.3.2*
+RUN cd / && wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/${BOWTIE2_VERSION}/bowtie2-${BOWTIE2_VERSION}-source.zip/download -O bowtie2-${BOWTIE2_VERSION}-source.zip && unzip bowtie2-${BOWTIE2_VERSION}-source.zip && cd bowtie2-${BOWTIE2_VERSION} && make && make install && cd ~ && /bin/rm -rf /bowtie2-${BOWTIE2_VERSION}*
 
 RUN cd ~ && git clone http://github.com/unreno/chimera && cd chimera && ln -s Makefile.example Makefile && make BASE_DIR="/usr/local" install && cd ~ && /bin/rm -rf chimera
 ```
