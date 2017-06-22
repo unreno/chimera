@@ -70,7 +70,8 @@ set -x
 		gunzip -f $gz_link
 		#	will also remove link
 
-		bamToFastq -i $bam -fq $sample_base.1.fastq -fq2 $sample_base.2.fastq
+#		bamToFastq -i $bam -fq $sample_base.1.fastq -fq2 $sample_base.2.fastq
+		samtools fastq $bam -1 $sample_base.1.fastq -2 $sample_base.2.fastq
 
 		rm -f $bam
 
