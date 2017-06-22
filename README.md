@@ -101,6 +101,8 @@ SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q00.rc_inse
 
 The following "Dockerfile" will create a functioning chimera install.
 
+Install Docker, make a new empty temp directory and create a file "Dockerfile" with the following contents.
+
 ```BASH
 FROM ubuntu
 
@@ -116,6 +118,11 @@ RUN cd / && wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.3.2
 
 RUN cd ~ && git clone http://github.com/unreno/chimera && cd chimera && ln -s Makefile.example Makefile && make BASE_DIR="/usr/local" install && cd ~ && /bin/rm -rf chimera
 ```
+
+Afterward, from within this temp directory, run `docker build -t chimera .` to create the image.
+It will take 5-10 minutes.
+Then run `docker run -ti chimera` to start a new instance or container.
+
 
 
 
