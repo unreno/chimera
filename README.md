@@ -123,6 +123,8 @@ Afterward, from within this temp directory, run `docker build -t chimera .` to c
 It will take 5-10 minutes.
 Then run `docker run -ti chimera` to start a new instance or container.
 
+The resulting docker image will be nearly 500MB.
+
 
 
 
