@@ -34,7 +34,7 @@ BEGIN {
 
 #	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
 #	"near the beginning" means starts at position <= 5
-( ( $6 ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( $4 <= 5 ) ){
+( ( $6 ~ /^[0-9]{2,}S[0-9IDMX=]*$/ ) && ( $4 <= 5 ) ){
 	split($6,a,"S")
 	clip=a[1]-$4+1
 	print ">"$1"_pre" >> pre_out
@@ -43,7 +43,7 @@ BEGIN {
 
 #	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
 #	"near the end" means starts at position >= 5 more than the reference minus the length of the read
-( ( $6 ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - length($10) + 5 ) ) ){
+( ( $6 ~ /^[0-9IDMX=]*[0-9]{2,}S$/ ) && ( $4 >= ( ref[$3] - length($10) + 5 ) ) ){
 	clip=ref[$3]-$4+2
 	print ">"$1"_post" >> post_out
 	print substr($10,clip) >> post_out

@@ -19,7 +19,7 @@ function print_to_fasta(a){
 function trim(r){
 	#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
 	#	"near the beginning" means starts at position <= 5
-	if( ( r[6] ~ /^[0-9]{2,}S[0-9IDM]*$/ ) && ( r[4] <= 5 ) ){
+	if( ( r[6] ~ /^[0-9]{2,}S[0-9IDMX=]*$/ ) && ( r[4] <= 5 ) ){
 		split(r[6],a,"S");
 		clip=a[1]-r[4]+1;
 		r[10]=substr(r[10],1,clip);
@@ -28,7 +28,7 @@ function trim(r){
 
 	#	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
 	#	"near the end" means starts at position >= 5 more than the reference minus the length of the read
-	if( ( r[6] ~ /^[0-9IDM]*[0-9]{2,}S$/ ) && ( r[4] >= ( ref[r[3]] - length(r[10]) + 5 ) ) ){
+	if( ( r[6] ~ /^[0-9IDMX=]*[0-9]{2,}S$/ ) && ( r[4] >= ( ref[r[3]] - length(r[10]) + 5 ) ) ){
 		clip=ref[r[3]]-r[4]+2;
 		r[10]=substr(r[10],clip);
 		pre_or_post="post";
