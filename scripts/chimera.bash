@@ -6,12 +6,22 @@ viral='herv_k113'
 human='hg19'
 threads=2
 distance=15
+paired_and_or_unpaired="paired unpaired"
 
 function usage(){
 	echo
 	echo "Usage: (NO EQUALS SIGNS)"
 	echo
-	echo "$script GZIPPED_BAM_SOURCE_FILE_LIST"
+	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] [--distance INTEGER] GZIPPED_BAM_SOURCE_FILE_LIST"
+	echo
+	echo "BAMs MUSTS be <sorted by name, laned bam file to be split>"
+	echo
+	echo "Defaults:"
+	echo "  human ..... : $human"
+	echo "  viral ..... : $viral"
+	echo "  threads ... : $threads (for bowtie2)"
+	echo "  distance .. : $distance (for overlappers)"
+	echo
 	echo
 	echo "Example:"
 	echo "$script ~/genepi2/ccls/data/raw/TCGA_Glioma_HERV52/TCGA-??-????-10*gz"
@@ -29,6 +39,8 @@ while [ $# -ne 0 ] ; do
 			shift; threads=$1; shift ;;
 		-d|--d*)
 			shift; distance=$1; shift ;;
+		--paired_and_or_unpaired)
+			shift; paired_and_or_unpaired=$1; shift ;;
 		-*)
 			echo ; echo "Unexpected args from: ${*}"; usage ;;
 		*)
@@ -66,7 +78,7 @@ set -x
 		mkdir -p $sample_base
 		cd $sample_base
 
-		ln -s $sample
+		ln -s ../../$sample
 		gunzip -f $gz_link
 		#	will also remove link
 
@@ -84,11 +96,20 @@ set -x
 #
 #		rm $sample_base.1.fastq $sample_base.2.fastq
 
-		chimera_paired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-			-1 $sample_base.1.fasta -2 $sample_base.2.fasta
 
-		chimera_unpaired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-			$sample_base.1.fasta,$sample_base.2.fasta
+		for p in $paired_and_or_unpaired ; do
+
+			if [ $p == "paired" ] ; then
+				chimera_paired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
+					-1 $sample_base.1.fasta -2 $sample_base.2.fasta
+			fi
+
+			if [ $p == "unpaired" ] ; then
+				chimera_unpaired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
+					$sample_base.1.fasta,$sample_base.2.fasta
+			fi
+
+		done
 
 		rm $sample_base.1.fasta $sample_base.2.fasta
 
@@ -100,7 +121,8 @@ set -x
 
 	for q in 20 10 00 ; do
 
-		for p in paired unpaired ; do
+#		for p in paired unpaired ; do
+		for p in $paired_and_or_unpaired ; do
 
 			insertion_points_to_table.bash \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
 			#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
