@@ -105,31 +105,36 @@ set -x
 
 	base="$base.bowtie2.$viral.very_sensitive_local.unpaired"
 
-	#	I think that using --all here would be a good idea, theoretically.
-	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
-	#	I did try and compare and the final results were identical.
-	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-		$filetype $files -S $base.sam
-
-#		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
-#	samtools does not seem to process STDIN pipe, so can't do that.
-#	Actually, it may but you might have to use - as the filename.
-
-#	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
-#	That would remove the need to convert and delete later.
-#	Would save on disk space if that's an issue.
-#	May require more memory to do the pipe processing though.
-
-	status=$?
-	if [ $status -ne 0 ] ; then
-		date
-		echo "bowtie failed with $status"
-		exit $status
-	fi
+#	#	I think that using --all here would be a good idea, theoretically.
+#	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
+#	#	I did try and compare and the final results were identical.
+#	bowtie2 --very-sensitive-local --threads $threads -x $viral \
+#		$filetype $files -S $base.sam
+#
+##		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
+##	samtools does not seem to process STDIN pipe, so can't do that.
+##	Actually, it may but you might have to use - as the filename.
+#
+##	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
+##	That would remove the need to convert and delete later.
+##	Would save on disk space if that's an issue.
+##	May require more memory to do the pipe processing though.
+#
+#	status=$?
+#	if [ $status -ne 0 ] ; then
+#		date
+#		echo "bowtie failed with $status"
+#		exit $status
+#	fi
+#
+#	aligned="$base.aligned"
+#	samtools view -b -F 4 -o $aligned.bam $base.sam
+#	rm $base.sam
 
 	aligned="$base.aligned"
-	samtools view -b -F 4 -o $aligned.bam $base.sam
-	rm $base.sam
+	bowtie2 --very-sensitive-local --threads $threads -x $viral \
+		$filetype $files \
+		| samtools view -b -F 4 -o $aligned.bam -
 
 
 	#	requires bash >= 4.0
@@ -148,7 +153,8 @@ set -x
 	#	Need a newer version or add the --posix option
 
 	#	Using -F 4 here again, seems unnecessary.
-	samtools view -h -F 4 $aligned.bam | gawk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
+	samtools view -h -F 4 $aligned.bam \
+		| gawk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
 
 
 	for pre_or_post in pre post ; do

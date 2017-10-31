@@ -83,8 +83,10 @@ done
 #[ -z $lane_2 ] && usage
 
 if [ ! -z $bam ] ; then
-	lane_1=${bam%.*}.1.fastq
-	lane_2=${bam%.*}.2.fastq
+#	lane_1=${bam%.*}.1.fastq
+#	lane_2=${bam%.*}.2.fastq
+	lane_1=${bam%.*}.1.fasta
+	lane_2=${bam%.*}.2.fasta
 else
 	if [ -z $lane_1 ] || [ -z $lane_2 ] ; then
 		usage
@@ -106,7 +108,8 @@ set -x
 
 	if [ -f $bam ] ; then
 #		bamToFastq -i $bam -fq $lane_1 -fq2 $lane_2
-		samtools fastq $bam -1 $lane_1 -2 $lane_2
+#		samtools fastq $bam -1 $lane_1 -2 $lane_2
+		samtools fasta $bam -1 $lane_1 -2 $lane_2
 	else
 		echo "$bam doesn't exist."
 		exit 9999
@@ -212,7 +215,8 @@ set -x
 #	Unused and unneeded
 #	samtools view -b -F 4 -f 8 -o $aligned.bam $base.bam
 
-	samtools view -h $base.bam | awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
+	samtools view -h $base.bam \
+		| awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
 
 
 

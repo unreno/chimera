@@ -71,17 +71,26 @@ set -x
 		#	will also remove link
 
 #		bamToFastq -i $bam -fq $sample_base.1.fastq -fq2 $sample_base.2.fastq
-		samtools fastq $bam -1 $sample_base.1.fastq -2 $sample_base.2.fastq
+#		samtools fastq $bam -1 $sample_base.1.fastq -2 $sample_base.2.fastq
+		samtools fasta $bam -1 $sample_base.1.fasta -2 $sample_base.2.fasta
 
 		rm -f $bam
 
+#		chimera_paired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
+#			-1 $sample_base.1.fastq -2 $sample_base.2.fastq
+#
+#		chimera_unpaired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
+#			$sample_base.1.fastq,$sample_base.2.fastq
+#
+#		rm $sample_base.1.fastq $sample_base.2.fastq
+
 		chimera_paired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-			-1 $sample_base.1.fastq -2 $sample_base.2.fastq
+			-1 $sample_base.1.fasta -2 $sample_base.2.fasta
 
 		chimera_unpaired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-			$sample_base.1.fastq,$sample_base.2.fastq
+			$sample_base.1.fasta,$sample_base.2.fasta
 
-		rm $sample_base.1.fastq $sample_base.2.fastq
+		rm $sample_base.1.fasta $sample_base.2.fasta
 
 		shift
 	done
