@@ -153,7 +153,8 @@ set -x
 
 
 
-
+		#	write protect everything
+		chmod -R -w .
 
 		shift
 	done
