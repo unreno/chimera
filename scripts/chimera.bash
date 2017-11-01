@@ -12,9 +12,12 @@ function usage(){
 	echo
 	echo "Usage: (NO EQUALS SIGNS)"
 	echo
-	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] [--distance INTEGER] GZIPPED_BAM_SOURCE_FILE_LIST"
+	echo "$script [--human STRING] [--viral STRING] [--threads INTEGER] [--distance INTEGER] <SOURCE FILE LIST>"
 	echo
-	echo "BAMs MUSTS be <sorted by name, laned bam file to be split>"
+	echo "SAMs and BAMs MUST be laned and sorted by name as it is to be split"
+	echo "They can be gzipped or not. Whatever."
+	echo
+	echo "(fasta, fasta.gz, fastq, fastq.gz are in development)"
 	echo
 	echo "Defaults:"
 	echo "  human ..... : $human"
@@ -24,7 +27,7 @@ function usage(){
 	echo
 	echo
 	echo "Example:"
-	echo "$script ~/genepi2/ccls/data/raw/TCGA_Glioma_HERV52/TCGA-??-????-10*gz"
+	echo "$script ~/genepi2/ccls/data/raw/TCGA_Glioma_HERV52/TCGA-??-????-10*bam.gz"
 	echo
 	exit
 }
@@ -51,6 +54,8 @@ done
 
 [ $# -eq 0 ] && usage
 
+base_dir=$PWD
+
 #/bin/rm -rf working_dir
 mkdir -p working_dir
 cd working_dir
@@ -65,53 +70,90 @@ set -x
 	date
 
 	while [ $# -ne 0 ] ; do
-		sample=$1
+		#	on second loop, would be in working_dir which would generate bad path for that sample
+		cd $base_dir
+
+		#	realpath returns a full absolute path without links
+		sample=$( realpath $1 )
+		#	could also use "readlink -f $1"
 
 		echo $sample
 		cd $working_dir
 
-		#	sample = /genepi2/ccls/data/raw/TCGA_Glioma_HERV52/TCGA-06-0155-10A-01D-0703-09.HERV52.bam.gz
-		gz_link=${sample##*/}      # TCGA-06-0155-10A-01D-0703-09.HERV52.bam.gz
-		bam=${gz_link%%.gz}        # TCGA-06-0155-10A-01D-0703-09.HERV52.bam
-		sample_base=${gz_link%%.*} # TCGA-06-0155-10A-01D-0703-09
+		sample_basename=$( basename $sample )	#	just the file name, no path
+		mkdir -p $sample_basename
+		cd $sample_basename
 
-		mkdir -p $sample_base
-		cd $sample_base
+		#	file list could be sample1.bam and sample1.bam.gz
+		#	so remember any and all of the extensions
+		initial_sample_basename=$sample_basename
 
-		ln -s ../../$sample
-		gunzip -f $gz_link
-		#	will also remove link
+		#	for .sam.gz and .bam.gz
+		if [ ${sample_basename:(-5)} == "am.gz" ] ; then
+			ln -s $sample
 
-#		bamToFastq -i $bam -fq $sample_base.1.fastq -fq2 $sample_base.2.fastq
-#		samtools fastq $bam -1 $sample_base.1.fastq -2 $sample_base.2.fastq
-		samtools fasta $bam -1 $sample_base.1.fasta -2 $sample_base.2.fasta
+			#	need the -f to gunzip a soft linked file.
+			#	this will also remove the link
+			gunzip -f $sample_basename
 
-		rm -f $bam
+			sample_basename=${sample_basename%.gz}
+		fi
+
+		#	for .sam and .bam
+		if [ ${sample_basename:(-2)} == "am" ] ; then
+			samtools fasta $sample_basename -1 $initial_sample_basename.1.fasta -2 $initial_sample_basename.2.fasta
+			rm -f $sample_basename
+		fi
+
+
+
+
+#	.fasta, .fasta.gz, .fastq, .fastq.gz .....
+
+
+
+
+
+
+
+
 
 #		chimera_paired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-#			-1 $sample_base.1.fastq -2 $sample_base.2.fastq
+#			-1 $sample_basename.1.fastq -2 $sample_basename.2.fastq
 #
 #		chimera_unpaired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-#			$sample_base.1.fastq,$sample_base.2.fastq
+#			$sample_basename.1.fastq,$sample_basename.2.fastq
 #
-#		rm $sample_base.1.fastq $sample_base.2.fastq
+#		rm $sample_basename.1.fastq $sample_basename.2.fastq
 
 
 		for p in $paired_and_or_unpaired ; do
 
 			if [ $p == "paired" ] ; then
 				chimera_paired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-					-1 $sample_base.1.fasta -2 $sample_base.2.fasta
+					-1 $initial_sample_basename.1.fasta -2 $initial_sample_basename.2.fasta
 			fi
 
 			if [ $p == "unpaired" ] ; then
 				chimera_unpaired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-					$sample_base.1.fasta,$sample_base.2.fasta
+					$initial_sample_basename.1.fasta,$initial_sample_basename.2.fasta
 			fi
 
 		done
 
-		rm $sample_base.1.fasta $sample_base.2.fasta
+
+
+
+		#	if input is .sam or .bam
+		if [ ${sample_basename:(-2)} == "am" ] ; then
+			rm -f $initial_sample_basename.1.fasta $initial_sample_basename.2.fasta
+		fi
+
+
+
+
+
+
 
 		shift
 	done
@@ -124,13 +166,14 @@ set -x
 #		for p in paired unpaired ; do
 		for p in $paired_and_or_unpaired ; do
 
-			insertion_points_to_table.bash \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
+			chimera_insertion_points_to_table.bash \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
 			#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
 			mv tmpfile.\*.${p}\*Q${q}\*points.* ${p}_insertion_points.hg19.Q${q}
 
 			chimera_csv_table_group_rows.bash ${p}_insertion_points_table.Q${q}.csv > ${p}_insertion_points_table.Q${q}.grouped.csv
 
-			overlappers_to_table.bash \*.${p}\*Q${q}\*overlappers > ${p}_overlappers_table.Q${q}.csv
+			#	this is a TINY bit different as it preserves full file names.
+			chimera_overlappers_to_table.bash \*.${p}\*Q${q}\*overlappers > ${p}_overlappers_table.Q${q}.csv
 			#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
 			mv tmpfile.\*.${p}\*Q${q}\*overlappers.* ${p}_overlappers.hg19.Q${q}
 
