@@ -17,7 +17,8 @@ function usage(){
 	echo "SAMs and BAMs MUST be laned and sorted by name as it is to be split"
 	echo "They can be gzipped or not. Whatever."
 	echo
-	echo "(fasta, fasta.gz, fastq, fastq.gz are in development)"
+	echo "fasta and fastq files, gzipped or not, can also be in the list"
+	echo "They must be paired with lane 1 first and lane 2 second."
 	echo
 	echo "Defaults:"
 	echo "  human ..... : $human"
@@ -99,59 +100,51 @@ set -x
 			sample_basename=${sample_basename%.gz}
 		fi
 
+
+
 		#	for .sam and .bam
 		if [ ${sample_basename:(-2)} == "am" ] ; then
-			samtools fasta $sample_basename -1 $initial_sample_basename.1.fasta -2 $initial_sample_basename.2.fasta
+			echo "sam or bam"
+			fast_1=$initial_sample_basename.1.fasta
+			fast_2=$initial_sample_basename.2.fasta
+			samtools fasta $sample_basename -1 $fast_1 -2 $fast_2
 			rm -f $sample_basename
+		elif [ ${sample_basename:(-9)} == ".fasta.gz" \
+				-o ${sample_basename:(-9)} == ".fastq.gz" \
+				-o ${sample_basename:(-6)} == ".fasta" \
+				-o ${sample_basename:(-6)} == ".fastq" \
+				-o ${sample_basename:(-6)} == ".fa.gz" \
+				-o ${sample_basename:(-6)} == ".fq.gz" \
+				-o ${sample_basename:(-3)} == ".fa" \
+				-o ${sample_basename:(-3)} == ".fq" \
+		] ; then
+			echo "fasta or fastq"
+			ln -s $1
+			fast_1=$( basename $1 )
+			shift
+			ln -s $1
+			fast_2=$( basename $1 )
+		else
+			echo "Unknown filetype so skipping"
+			break
 		fi
-
-
-
-
-#	.fasta, .fasta.gz, .fastq, .fastq.gz .....
-
-
-
-
-
-
-
-
-
-#		chimera_paired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-#			-1 $sample_basename.1.fastq -2 $sample_basename.2.fastq
-#
-#		chimera_unpaired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-#			$sample_basename.1.fastq,$sample_basename.2.fastq
-#
-#		rm $sample_basename.1.fastq $sample_basename.2.fastq
-
 
 		for p in $paired_and_or_unpaired ; do
 
 			if [ $p == "paired" ] ; then
-				chimera_paired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-					-1 $initial_sample_basename.1.fasta -2 $initial_sample_basename.2.fasta
+				chimera_paired_local.bash --human $human --threads $threads \
+					--viral $viral --distance $distance \
+					-1 $fast_1 -2 $fast_2
 			fi
 
 			if [ $p == "unpaired" ] ; then
-				chimera_unpaired_local.bash --human $human --threads $threads --viral $viral --distance $distance \
-					$initial_sample_basename.1.fasta,$initial_sample_basename.2.fasta
+				chimera_unpaired_local.bash --human $human --threads $threads \
+					--viral $viral --distance $distance ${fast_1},${fast_2}
 			fi
 
 		done
 
-
-
-
-		#	if input is .sam or .bam
-		if [ ${sample_basename:(-2)} == "am" ] ; then
-			rm -f $initial_sample_basename.1.fasta $initial_sample_basename.2.fasta
-		fi
-
-
-
-
+		rm -f $fast_1 $fast_2
 
 		#	write protect everything
 		chmod -R -w .
@@ -164,7 +157,6 @@ set -x
 
 	for q in 20 10 00 ; do
 
-#		for p in paired unpaired ; do
 		for p in $paired_and_or_unpaired ; do
 
 			chimera_insertion_points_to_table.bash \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
