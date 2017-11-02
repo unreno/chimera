@@ -82,13 +82,19 @@ done
 #[ -z $lane_1 ] && usage
 #[ -z $lane_2 ] && usage
 
-if [ ! -z $bam ] ; then
-#	lane_1=${bam%.*}.1.fastq
-#	lane_2=${bam%.*}.2.fastq
-	lane_1=${bam%.*}.1.fasta
-	lane_2=${bam%.*}.2.fasta
+if [ -n "$bam" ] ; then
+	if [ -n "$lane_1" -o -n "$lane_2" ] ; then
+		echo "Bam AND fasta/q files provided?"
+		echo "Bam:$bam:1:$lane_1:2:$lane_2:"
+		usage
+	else
+		#	lane_1=${bam%.*}.1.fastq
+		#	lane_2=${bam%.*}.2.fastq
+		lane_1=${bam%.*}.1.fasta
+		lane_2=${bam%.*}.2.fasta
+	fi
 else
-	if [ -z $lane_1 ] || [ -z $lane_2 ] ; then
+	if [ -z "$lane_1" ] || [ -z "$lane_2" ] ; then
 		usage
 	fi
 fi
@@ -106,13 +112,13 @@ set -x
 	echo "Starting at ..."
 	date
 
-	if [ -f $bam ] ; then
+	if [ -n "$bam" -a -r "$bam" ] ; then
 #		bamToFastq -i $bam -fq $lane_1 -fq2 $lane_2
 #		samtools fastq $bam -1 $lane_1 -2 $lane_2
 		samtools fasta $bam -1 $lane_1 -2 $lane_2
-	else
-		echo "$bam doesn't exist."
-		exit 9999
+#	else
+#		echo "$bam doesn't exist."
+#		exit 9999
 	fi
 
 
