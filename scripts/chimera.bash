@@ -66,6 +66,9 @@ working_dir=$PWD
 #	Print a lot more stuff
 set -x
 
+samtools --version
+bowtie2 --version
+
 {
 	echo "Starting at ..."
 	date
@@ -79,6 +82,32 @@ set -x
 		#	could also use "readlink -f $1"
 
 		echo $sample
+		if [ ${sample:(-7)} == ".bam.gz" \
+				-o ${sample:(-7)} == ".sam.gz" \
+				-o ${sample:(-4)} == ".bam" \
+				-o ${sample:(-4)} == ".sam" \
+		] ; then
+			echo "Filetype: sam or bam"
+			filetype="_am"
+		elif [ ${sample:(-9)} == ".fasta.gz" \
+				-o ${sample:(-9)} == ".fastq.gz" \
+				-o ${sample:(-6)} == ".fasta" \
+				-o ${sample:(-6)} == ".fastq" \
+				-o ${sample:(-6)} == ".fa.gz" \
+				-o ${sample:(-6)} == ".fq.gz" \
+				-o ${sample:(-3)} == ".fa" \
+				-o ${sample:(-3)} == ".fq" \
+		] ; then
+			echo "Filetype: fasta or fastq"
+			filetype="fast_"
+			fast_1_with_path=$( realpath $1 )
+			shift
+			fast_2_with_path=$( realpath $1 )
+		else
+			echo "Unknown filetype so skipping"
+			break
+		fi
+
 		cd $working_dir
 
 		sample_basename=$( basename $sample )	#	just the file name, no path
@@ -100,33 +129,19 @@ set -x
 			sample_basename=${sample_basename%.gz}
 		fi
 
-
-
 		#	for .sam and .bam
-		if [ ${sample_basename:(-2)} == "am" ] ; then
+		if [ ${filetype} == "_am" ] ; then
 			echo "sam or bam"
 			fast_1=$initial_sample_basename.1.fasta
 			fast_2=$initial_sample_basename.2.fasta
 			samtools fasta $sample_basename -1 $fast_1 -2 $fast_2
 			rm -f $sample_basename
-		elif [ ${sample_basename:(-9)} == ".fasta.gz" \
-				-o ${sample_basename:(-9)} == ".fastq.gz" \
-				-o ${sample_basename:(-6)} == ".fasta" \
-				-o ${sample_basename:(-6)} == ".fastq" \
-				-o ${sample_basename:(-6)} == ".fa.gz" \
-				-o ${sample_basename:(-6)} == ".fq.gz" \
-				-o ${sample_basename:(-3)} == ".fa" \
-				-o ${sample_basename:(-3)} == ".fq" \
-		] ; then
+		elif [ ${filetype} == "fast_" ] ; then
 			echo "fasta or fastq"
-			ln -s $1
-			fast_1=$( basename $1 )
-			shift
-			ln -s $1
-			fast_2=$( basename $1 )
-		else
-			echo "Unknown filetype so skipping"
-			break
+			fast_1=$( basename $fast_1_with_path )
+			fast_2=$( basename $fast_2_with_path )
+			ln -s $fast_1_with_path
+			ln -s $fast_2_with_path
 		fi
 
 		for p in $paired_and_or_unpaired ; do
