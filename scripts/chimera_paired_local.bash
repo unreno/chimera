@@ -236,6 +236,12 @@ bowtie2 --version
 		' \
 		| awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
 
+#	This is NOT XOR so will include those pairs where both match.
+#			( !and($2,4) || !and($2,8) ){ print }
+#	The awk script will deal with that.
+#	The following might work, if needed.
+#			( xor ( !and($2,4), !and($2,8) ) ){ print }
+
 
 
 
@@ -261,13 +267,17 @@ bowtie2 --version
 			exit $status
 		fi
 
+		#	SORT BY NAME and convert to bam 
+		samtools sort -n -o $aligned.$pre_or_post.bowtie2.$human.name.bam \
+			$aligned.$pre_or_post.bowtie2.$human.sam
+
 		#	SORT and convert to bam and remove the sam.
-		samtools sort -o $aligned.$pre_or_post.bowtie2.$human.bam \
+		samtools sort -o $aligned.$pre_or_post.bowtie2.$human.position.bam \
 			$aligned.$pre_or_post.bowtie2.$human.sam
 		rm $aligned.$pre_or_post.bowtie2.$human.sam
 
 		#	Index now so don't have to before running IGV
-		samtools index $aligned.$pre_or_post.bowtie2.$human.bam
+		samtools index $aligned.$pre_or_post.bowtie2.$human.position.bam
 
 	done
 
@@ -278,20 +288,41 @@ bowtie2 --version
 		echo $q
 		mapq="Q${q}"
 
-		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
+		#	use name sorted bam as awk script expecting them in order
+		#	add -f 2 to get PROPER_PAIR
+
+		#	-f = ALL of ...
+		#	-F = NONE of ...
+
+		#  2 = read and mate aligned a proper concordant pair (very desireable)
+		#  4 = read UNMAPPED ( -F 4 = MAPPED )
+		#  8 = read's MATE UNMAPPED
+		# 16 = read REVERSED
+		# 18 = 16,2 ( -f 18 = proper pair alignment, reversed )
+		# 20 = 16,4 ( -F 20 = not unmapped, not reverse = MAPPED FORWARD )
+		# 32 = read's MATE REVERSED
+
+		#	This is getting funky.
+		#	Can the reads be aligned proper paired, but in different directions?
+
+#		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.name.bam \
+		samtools view -q $q -f 2 -F 20 $aligned.pre.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=pre \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
-		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
+#		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.name.bam \
+		samtools view -q $q -f 2 -F 20 $aligned.post.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=post \
 			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
 		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
 			$aligned.*.bowtie2.$human.$mapq.insertion_points \
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
 
-		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
+#		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.name.bam \
+		samtools view -q $q -F 4 -f 18 $aligned.pre.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=pre \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
-		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
+#		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.name.bam \
+		samtools view -q $q -F 4 -f 18 $aligned.post.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=post \
 			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
 		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
