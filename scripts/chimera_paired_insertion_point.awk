@@ -44,15 +44,19 @@ BEGIN{
 #	print pre_or_post >> log_file
 #	print "insertion point" >> log_file
 
+#	s[2] is the flag field
+#	 and(s[2],16) = REVERSE
+#	!and(s[2],16) = NOT REVERSE = FORWARD
+
 	if( \
-		( direction == "F" && pre_or_post == "pre" ) ||
-		( direction == "R" && pre_or_post == "post" ) ){
+		( !and(s[2],16) && direction == "F" && pre_or_post == "pre" ) ||
+		(  and(s[2],16) && direction == "R" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]+length(s[10])
 #			print "position plus length" >> log_file
 #			print s[4]+length(s[10]) >> log_file
 	} else if( \
-		( direction == "R" && pre_or_post == "pre" ) ||
-		( direction == "F" && pre_or_post == "post" ) ){
+		(  and(s[2],16) && direction == "R" && pre_or_post == "pre" ) ||
+		( !and(s[2],16) && direction == "F" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]
 #			print "position" >> log_file
 #			print s[4] >> log_file

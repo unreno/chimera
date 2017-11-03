@@ -303,14 +303,26 @@ bowtie2 --version
 		# 32 = read's MATE REVERSED
 
 		#	This is getting funky.
-		#	Can the reads be aligned proper paired, but in different directions?
+		#	Can the reads be aligned proper paired, but in different directions? YES YES YES, sadly.
+		#		unlikely to have REVERSE and MREVERSE
+
+		#	chimera_paired_insertion_point.awk expecting BOTH READS! Remove the 4 flag. Ehh...
+
+		#	As the flags are read specific, using them here and expecting samtools to 
+		#	return both mates is seeming to be impossible. 
+		#	The logic will need to be moved to the awk script.
+		#	based on shortest (trimmed) read and given direction and pre_or_post
+
+		# -f 2 -F 12 (-F 12 is redundant as -f 2 implies both aligned)
 
 #		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.name.bam \
-		samtools view -q $q -f 2 -F 20 $aligned.pre.bowtie2.$human.name.bam \
+#		samtools view -q $q -f 2 -F 16 $aligned.pre.bowtie2.$human.name.bam \
+		samtools view -q $q -f 2 $aligned.pre.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=pre \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
 #		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.name.bam \
-		samtools view -q $q -f 2 -F 20 $aligned.post.bowtie2.$human.name.bam \
+#		samtools view -q $q -f 2 -F 16 $aligned.post.bowtie2.$human.name.bam \
+		samtools view -q $q -f 2 $aligned.post.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=post \
 			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
 		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
@@ -318,11 +330,13 @@ bowtie2 --version
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
 
 #		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.name.bam \
-		samtools view -q $q -F 4 -f 18 $aligned.pre.bowtie2.$human.name.bam \
+#		samtools view -q $q -f 18 $aligned.pre.bowtie2.$human.name.bam \
+		samtools view -q $q -f 2 $aligned.pre.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=pre \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
 #		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.name.bam \
-		samtools view -q $q -F 4 -f 18 $aligned.post.bowtie2.$human.name.bam \
+#		samtools view -q $q -f 18 $aligned.post.bowtie2.$human.name.bam \
+		samtools view -q $q -f 2 $aligned.post.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=post \
 			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
 		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
