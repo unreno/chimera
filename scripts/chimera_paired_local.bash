@@ -209,25 +209,32 @@ bowtie2 --version
 #		$filetype -1 $lane_1 -2 $lane_2 | samtools view -b -o $base.bam -
 
 
-	#	Even less disk
-	#	gawk needed for bit math "and"
+#	#	Even less disk
+#	#	gawk needed for bit math "and"
+#	bowtie2 --very-sensitive-local --threads $threads -x $viral \
+#		$filetype -1 $lane_1 -2 $lane_2 \
+#		| gawk -F"\t" '
+#			( /^@/ ){ print; next; }
+#			( !and($2,4) || !and($2,8) ){ print }
+#		' \
+#		| samtools view -b -o $base.bam -
+#
+#
+#
+##	Unused and unneeded
+##	samtools view -b -F 4 -f 8 -o $aligned.bam $base.bam
+#
+#	samtools view -h $base.bam \
+#		| awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
+
+
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype -1 $lane_1 -2 $lane_2 \
 		| gawk -F"\t" '
 			( /^@/ ){ print; next; }
 			( !and($2,4) || !and($2,8) ){ print }
 		' \
-		| samtools view -b -o $base.bam -
-
-
-
-#	Unused and unneeded
-#	samtools view -b -F 4 -f 8 -o $aligned.bam $base.bam
-
-	samtools view -h $base.bam \
 		| awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
-
-
 
 
 
