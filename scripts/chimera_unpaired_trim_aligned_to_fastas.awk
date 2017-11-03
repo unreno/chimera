@@ -40,7 +40,7 @@ BEGIN {
 	print ">"$1"_pre" >> pre_out
 	print substr($10,1,clip) >> pre_out
 
-	next;	#	could match next block too?
+	next;	#	could match next block too? No. This regex couldn't match both.
 }
 
 #	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.

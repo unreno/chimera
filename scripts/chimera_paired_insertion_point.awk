@@ -18,6 +18,11 @@ BEGIN{
 		#	previously, this resulted in BOTH points included
 }  
 #  Non-reference lines, with a mapped reference, MATCHING previous sequence name
+#
+#		Does the pair matching the same reference chromosome matter here?
+#		If so, would need to check extended columns for concordant pairing (YT:Z:CP, not YT:Z:DP, YT:Z:UP, ...?)
+#		PROPER_PAIR is good, but would result is very small numbers. Trying.
+#
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){
 	for(i=0;i<=NF;i++)l[i]=$i;
 
