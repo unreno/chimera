@@ -251,7 +251,8 @@ bowtie2 --version
 
 
 
-
+	#	PRE means that it was BEFORE the reference and trimmed on the RIGHT
+	#	POST means that it was AFTER the reference and trimmed on the LEFT
 
 	for pre_or_post in pre post ; do
 

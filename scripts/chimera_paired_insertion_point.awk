@@ -48,6 +48,9 @@ BEGIN{
 #	 and(s[2],16) = REVERSE
 #	!and(s[2],16) = NOT REVERSE = FORWARD
 
+	#	PRE means that it was BEFORE the reference and trimmed on the RIGHT
+	#	POST means that it was AFTER the reference and trimmed on the LEFT
+
 	if( \
 		( !and(s[2],16) && direction == "F" && pre_or_post == "pre" ) ||
 		(  and(s[2],16) && direction == "R" && pre_or_post == "post" ) ){
