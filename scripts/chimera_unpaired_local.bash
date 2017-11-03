@@ -134,29 +134,36 @@ bowtie2 --version
 #	samtools view -b -F 4 -o $aligned.bam $base.sam
 #	rm $base.sam
 
+#	aligned="$base.aligned"
+#	bowtie2 --very-sensitive-local --threads $threads -x $viral \
+#		$filetype $files \
+#		| samtools view -b -F 4 -o $aligned.bam -
+#
+#
+#	#	requires bash >= 4.0
+#	#	${VARIABLE^^} converts to uppercase
+#	#	${VARIABLE,,} converts to lowercase
+#
+#	#
+#	#	Find alignments that align past the appropriate end of the ends of the ltr.
+#	#
+#	#    f4 = unmapped
+#	#    F4 = NOT unmapped = mapped
+#	#    F8 = mate NOT unmapped = mate mapped
+#	#
+#	#	Older versions of awk do not directly support "interval expressions",
+#	#		ie ({4}, {4,}, {4,6})
+#	#	Need a newer version or add the --posix option
+#
+#	#	Using -F 4 here again, seems unnecessary.
+#	samtools view -h -F 4 $aligned.bam \
+#		| gawk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
+
+	#	I think that I can do this in one step.
 	aligned="$base.aligned"
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype $files \
-		| samtools view -b -F 4 -o $aligned.bam -
-
-
-	#	requires bash >= 4.0
-	#	${VARIABLE^^} converts to uppercase
-	#	${VARIABLE,,} converts to lowercase
-
-	#
-	#	Find alignments that align past the appropriate end of the ends of the ltr.
-	#
-	#    f4 = unmapped
-	#    F4 = NOT unmapped = mapped
-	#    F8 = mate NOT unmapped = mate mapped
-	#
-	#	Older versions of awk do not directly support "interval expressions",
-	#		ie ({4}, {4,}, {4,6})
-	#	Need a newer version or add the --posix option
-
-	#	Using -F 4 here again, seems unnecessary.
-	samtools view -h -F 4 $aligned.bam \
+		| samtools view -h -F 4 - \
 		| gawk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
 
 
