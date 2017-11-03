@@ -81,6 +81,9 @@ base=`basename $PWD`
 #	Print a lot more stuff
 set -x
 
+samtools --version
+bowtie2 --version
+
 {
 	echo "Starting at ..."
 	date
