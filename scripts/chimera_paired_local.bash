@@ -319,12 +319,12 @@ bowtie2 --version
 #		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.name.bam \
 #		samtools view -q $q -f 2 -F 16 $aligned.pre.bowtie2.$human.name.bam \
 		samtools view -q $q -f 2 $aligned.pre.bowtie2.$human.name.bam \
-			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=pre \
+			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=pre -v logging=1 \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
 #		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.name.bam \
 #		samtools view -q $q -f 2 -F 16 $aligned.post.bowtie2.$human.name.bam \
 		samtools view -q $q -f 2 $aligned.post.bowtie2.$human.name.bam \
-			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=post \
+			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=post -v logging=1 \
 			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
 		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
 			$aligned.*.bowtie2.$human.$mapq.insertion_points \
@@ -333,12 +333,12 @@ bowtie2 --version
 #		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.name.bam \
 #		samtools view -q $q -f 18 $aligned.pre.bowtie2.$human.name.bam \
 		samtools view -q $q -f 2 $aligned.pre.bowtie2.$human.name.bam \
-			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=pre \
+			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=pre -v logging=1 \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
 #		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.name.bam \
 #		samtools view -q $q -f 18 $aligned.post.bowtie2.$human.name.bam \
 		samtools view -q $q -f 2 $aligned.post.bowtie2.$human.name.bam \
-			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=post \
+			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=post -v logging=1 \
 			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
 		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
 			$aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
