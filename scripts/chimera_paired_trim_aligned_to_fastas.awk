@@ -19,20 +19,48 @@ function print_to_fasta(a){
 function trim(r){
 	#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
 	#	"near the beginning" means starts at position <= 5
+	#	20S50M
 	if( ( r[6] ~ /^[0-9]{2,}S[0-9IDMX=]*$/ ) && ( r[4] <= 5 ) ){
+		if( logging ) {
+			print "Soft clipped just at beginning and near start of ref" >> log_file
+			print r[6] >> log_file
+			print r[4] >> log_file
+		}
 		split(r[6],a,"S");
-		clip=a[1]-r[4]+1;
+#	base clip on just CIGAR's soft clipped
+		clip=a[1];
+#	or on where the reference SHOULD start (was this way)
+#		clip=a[1]-r[4]+1;
+		if( logging ) print "Keeping first "clip" bases" >> log_file
 		r[10]=substr(r[10],1,clip);
+		if( logging ) print length(r[10]) >> log_file
 		pre_or_post="pre";
 	}
 
 	#	Ensure at least 2-digit soft clip and ensure matches near the end of the reference.
 	#	"near the end" means starts at position >= 5 more than the reference minus the length of the read
+	#	50M20S
 	if( ( r[6] ~ /^[0-9IDMX=]*[0-9]{2,}S$/ ) && ( r[4] >= ( ref[r[3]] - length(r[10]) + 5 ) ) ){
-		clip=ref[r[3]]-r[4]+2;
-		r[10]=substr(r[10],clip);
+		if( logging ) {
+			print "Soft clipped just at end and near end of ref" >> log_file
+			print r[6] >> log_file
+			print r[4] >> log_file
+			print ( ref[r[3]] - length(r[10]) ) >> log_file
+		}
+#	clip off just the non-S CIGAR? 
+		split(r[6],a,/[IDMX=]/);
+		keep=sprintf("%d",a[length(a)]);
+		if( logging ) print "Keeping last "keep" bases" >> log_file
+		r[10]=substr(r[10],length(r[10])-keep+1);
+#	or clip off from where end of reference should be (if didn't match to the end) (was this way)
+#		clip=ref[r[3]]-r[4]+2;
+#		r[10]=substr(r[10],clip);
+		if( logging ) print length(r[10]) >> log_file
 		pre_or_post="post";
 	}
+
+#	substr(s,a,b) -> from string s, from position a, return b chars. No b = all to end.
+
 #			return r;	#	cannot return arrays. Arrays passed as reference so mods made are actual.
 	return pre_or_post;
 }
@@ -42,6 +70,8 @@ BEGIN {
 	comp["C"]="G";
 	comp["G"]="C";
 	split("",b);split("",l);
+	log_file="chimera_paired_trim_aligned_to_fastas.awk"
+	if( logging ) print "\nNew file\n\n" >> log_file
 }
 #	Store all of the reference lengths
 #	Ex. @SQ	SN:chr1	LN:249250621
@@ -53,14 +83,21 @@ BEGIN {
 
 #	Non-sequence reference lines, with a mapped reference, matching previous sequence name
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){
+	if( logging ) print "Matched buffer : "$0 >> log_file
 	for(i=0;i<=NF;i++)l[i]=$i;
 
 	#	1 and only 1 read aligned. Many ways to check this.
 	if( ( and(l[2],4) && !and(l[2],8) ) || ( !and(l[2],4) && and(l[2],8) ) ){
+		if( logging ) print "Appears 1 read in pair aligned" >> log_file
 		#	If this read unmapped and mate not unmapped (mate mapped) ...
 		if( and(l[2],4) && !and(l[2],8) ){
 			before_trim=b[10]
+			if( logging ) print "Trimming" >> log_file
+			if( logging ) print before_trim >> log_file
 			pre_or_post=trim(b);
+			if( logging ) print pre_or_post >> log_file
+			if( logging ) print "Trimmed" >> log_file
+			if( logging ) print b[10] >> log_file
 			if( b[10] != before_trim ){
 				if( and(b[2],16) ) l[10]=reverse_complement(l[10])
 				print_to_fasta( b )
@@ -69,7 +106,12 @@ BEGIN {
 		#	If mate read unmapped and this not unmapped (this mapped) ...
 		}else if( !and(l[2],4) && and(l[2],8) ){
 			before_trim=l[10]
+			if( logging ) print "Trimming" >> log_file
+			if( logging ) print before_trim >> log_file
 			pre_or_post=trim(l);
+			if( logging ) print pre_or_post >> log_file
+			if( logging ) print "Trimmed" >> log_file
+			if( logging ) print l[10] >> log_file
 			if( l[10] != before_trim ){
 				if( and(l[2],16) ) b[10]=reverse_complement(b[10])
 				print_to_fasta( b )
@@ -85,6 +127,7 @@ BEGIN {
 #	Non-sequence reference lines, with a mapped reference, not matching previous sequence name
 #	Buffer first occurence of sequence name.
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
+	if( logging ) print "Buffering : "$0 >> log_file
 	for(i=0;i<=NF;i++)b[i]=$i;
 }
 #'

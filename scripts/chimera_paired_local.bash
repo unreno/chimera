@@ -227,14 +227,14 @@ bowtie2 --version
 #	samtools view -h $base.bam \
 #		| awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
 
-
+	#	gawk script filters those where at least 1 read aligned
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype -1 $lane_1 -2 $lane_2 \
 		| gawk -F"\t" '
 			( /^@/ ){ print; next; }
-			( !and($2,4) || !and($2,8) ){ print }
+			( xor ( !and($2,4), !and($2,8) ) ){ print }
 		' \
-		| awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
+		| awk -v base=$aligned -v logging=1 -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
 
 #	This is NOT XOR so will include those pairs where both match.
 #			( !and($2,4) || !and($2,8) ){ print }
