@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 
+script=$(basename $0)
+
 if [ $# -eq 0 ]; then
 	echo 
 	echo "Usage:"
 	echo
-	echo "`basename $0` 'FIND PATTERN FOR OVERLAPPER_FILES'"
+	echo "$script 'FIND PATTERN FOR OVERLAPPER_FILES'"
 	echo
 	echo "Example:"
-	echo "`basename $0` '*Q00*overlappers'"
-	echo "`basename $0` '*Q20*overlappers'"
+	echo "$script '*Q00*overlappers'"
+	echo "$script '*Q20*overlappers'"
 	echo
 	exit
 fi
@@ -79,6 +81,7 @@ for file in `find ./ -maxdepth 2 -type f -name $1` ; do
 	#     12 chr12|43919859
 	#     16 chr6|160849873
 
+	#	Why --posix?
 	awk -v subject=$subject -v direction=$direction --posix '{
 		printf "%s|%s,%d,%s\n",$2,direction,$1,subject
 	}' $file >> $tmpfile
