@@ -176,14 +176,14 @@ bowtie2 --version
 
 			chimera_insertion_points_to_table.bash \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
 			#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
-			mv tmpfile.\*.${p}\*Q${q}\*points.* ${p}_insertion_points.hg19.Q${q}
+			mv tmpfile.\*.${p}\*Q${q}\*points.* ${p}_insertion_points.${human}.Q${q}
 
 			chimera_csv_table_group_rows.bash ${p}_insertion_points_table.Q${q}.csv > ${p}_insertion_points_table.Q${q}.grouped.csv
 
 			#	this is a TINY bit different as it preserves full file names.
 			chimera_overlappers_to_table.bash \*.${p}\*Q${q}\*overlappers > ${p}_overlappers_table.Q${q}.csv
 			#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
-			mv tmpfile.\*.${p}\*Q${q}\*overlappers.* ${p}_overlappers.hg19.Q${q}
+			mv tmpfile.\*.${p}\*Q${q}\*overlappers.* ${p}_overlappers.${human}.Q${q}
 
 		done	#	paired unpaired
 
