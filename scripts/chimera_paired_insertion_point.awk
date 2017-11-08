@@ -1,6 +1,8 @@
 
 #	Expecting direction (F or R), pre_or_post (pre or post)
 
+function lg(s){ if( logging ) print s >> log_file }
+
 BEGIN{
 	#	input is a sam file so specifying tab may be unnecessary, but clarity is nice.
 	FS="\t"
@@ -13,8 +15,8 @@ BEGIN{
 	#  Buffer first occurence of sequence name.
 	for(i=0;i<=NF;i++)b[i]=$i;
 
-	if( logging ) print "Buffer new" >> log_file
-	if( logging ) print $0 >> log_file
+	lg( "Buffer new" )
+	lg( $0 )
 	next;	#	WILL run next block too, unless next
 		#	previously, this resulted in BOTH points included
 }  
@@ -27,23 +29,23 @@ BEGIN{
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] == $1 ) ){
 	for(i=0;i<=NF;i++)l[i]=$i;
 
-	if( logging ) print "Match" >> log_file
-	if( logging ) print $0 >> log_file
+	lg( "Match" )
+	lg( $0 )
 
 #	For the shortest read ...
 
-	if( logging )	print "shortest" >> log_file
+	lg( "shortest" )
 	if( length(l[10]) < length(b[10]) ){
-		if( logging ) print l[10] >> log_file
+		lg( l[10] )
 		for(i=0;i<=NF;i++)s[i]=l[i];
 	} else {
-		if( logging ) print b[10] >> log_file
+		lg( b[10] )
 		for(i=0;i<=NF;i++)s[i]=b[i];
 	}
 
-	if( logging ) print direction >> log_file
-	if( logging ) print pre_or_post >> log_file
-	if( logging ) print "insertion point" >> log_file
+	lg( direction )
+	lg( pre_or_post )
+	lg( "insertion point" )
 
 #	s[2] is the flag field
 #	 and(s[2],16) = REVERSE
@@ -56,14 +58,16 @@ BEGIN{
 		( !and(s[2],16) && direction == "F" && pre_or_post == "pre" ) ||
 		(  and(s[2],16) && direction == "R" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]+length(s[10])
-			if( logging ) print "position plus length" >> log_file
-			if( logging ) print s[4]+length(s[10]) >> log_file
+			lg( "position plus length" )
+			lg( s[4]+length(s[10]) )
 	} else if( \
 		(  and(s[2],16) && direction == "R" && pre_or_post == "pre" ) ||
 		( !and(s[2],16) && direction == "F" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]
-			if( logging ) print "position" >> log_file
-			if( logging ) print s[4] >> log_file
+			lg( "position" )
+			lg( s[4] )
+	} else {
+		lg( "Skipping as does not match alignment orientation" )
 	}
 	next;
 }
