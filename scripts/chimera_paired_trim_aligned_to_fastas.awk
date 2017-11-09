@@ -47,9 +47,9 @@ function trim(r){
 
 #	clip off just the non-S CIGAR? 
 		split(r[6],a,/[IDMX=]/);
-		keep=sprintf("%d",a[length(a)]);
-		lg( "Keeping last "keep" bases" )
-		r[10]=substr(r[10],length(r[10])-keep+1);
+		clip=sprintf("%d",a[length(a)]);
+		lg( "Keeping last "clip" bases" )
+		r[10]=substr(r[10],length(r[10])-clip+1);
 #	or clip off from where end of reference should be (if didn't match to the end) (was this way)
 #		clip=ref[r[3]]-r[4]+2;
 #		r[10]=substr(r[10],clip);
@@ -68,10 +68,12 @@ function trim(r){
 	return pre_or_post;
 }
 BEGIN {
+	FS="\t";	#	20171108 - wasn't here, but likely not needed
 	comp["A"]="T";
 	comp["T"]="A";
 	comp["C"]="G";
 	comp["G"]="C";
+	comp["N"]="N";
 	split("",b);split("",l);
 	log_file="chimera_paired_trim_aligned_to_fastas.awk"
 #	if( logging ) print "\nNew file\n\n" >> log_file
