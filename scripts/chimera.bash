@@ -132,6 +132,12 @@ bowtie2 --version
 		#	for .sam and .bam
 		if [ ${filetype} == "_am" ] ; then
 			echo "sam or bam"
+
+			#	If not initially gzipped, need to link the sam/bam file.
+			if [ ${sample:(-2)} == "am" ] ; then
+				ln -s $sample
+			fi
+
 			fast_1=$initial_sample_basename.1.fasta
 			fast_2=$initial_sample_basename.2.fasta
 			samtools fasta $sample_basename -1 $fast_1 -2 $fast_2
