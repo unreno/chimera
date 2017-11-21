@@ -43,10 +43,9 @@ BEGIN{
 		for(i=0;i<=NF;i++)s[i]=b[i];
 	}
 
-	lg( "Human aligned direction: " (and(s[2],16))? "reverse" : "forward" )
 	lg( "Viral aligned direction: " direction )
 	lg( pre_or_post )
-	lg( "insertion point" )
+	lg( "Human aligned direction: " (and(s[2],16))? "R" : "F" )
 
 #	s[2] is the flag field
 #	 and(s[2],16) = REVERSE
@@ -76,7 +75,7 @@ BEGIN{
 #		( !and(s[2],16) && direction == "F" && pre_or_post == "pre" ) ||
 #		(  and(s[2],16) && direction == "R" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]+length(s[10])
-			lg( "position plus length" )
+			lg( "Insertion point is on RIGHT (position plus length)" )
 			lg( s[4]+length(s[10]) )
 	} else if( \
 		(  and(s[2],16) && direction == "F" && pre_or_post == "pre" ) ||
@@ -86,7 +85,7 @@ BEGIN{
 #		(  and(s[2],16) && direction == "R" && pre_or_post == "pre" ) ||
 #		( !and(s[2],16) && direction == "F" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]
-			lg( "position" )
+			lg( "Insertion point is on LEFT (just position)" )
 			lg( s[4] )
 	} else {
 		lg( "Skipping as does not match alignment orientation" )
