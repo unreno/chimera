@@ -180,7 +180,16 @@ bowtie2 --version
 
 		for p in $paired_and_or_unpaired ; do
 
+
+#	Given that some of our runs were very large, an actual file listing
+#	was too much for the shell to handle. Had to use a glob pattern that
+#	will be used by find. This has gotten rather awkward now.
+
+#	And includes files that shouldn't be included
+
 			chimera_insertion_points_to_table.bash \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
+			#	This script generates a tmpfile that is just a list of ALL the insertion points.
+			#	It is unused, but kept for curiousity.
 			#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
 			mv tmpfile.\*.${p}\*Q${q}\*points.* ${p}_insertion_points.${human}.Q${q}
 
@@ -188,6 +197,8 @@ bowtie2 --version
 
 			#	this is a TINY bit different as it preserves full file names.
 			chimera_overlappers_to_table.bash \*.${p}\*Q${q}\*overlappers > ${p}_overlappers_table.Q${q}.csv
+			#	This script generates a tmpfile that is just a list of ALL the insertion points.
+			#	It is unused, but kept for curiousity.
 			#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
 			mv tmpfile.\*.${p}\*Q${q}\*overlappers.* ${p}_overlappers.${human}.Q${q}
 
