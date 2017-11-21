@@ -251,34 +251,38 @@ bowtie2 --version
 
 
 
-	#	PRE means that it was BEFORE the reference and trimmed on the RIGHT
-	#	POST means that it was AFTER the reference and trimmed on the LEFT
+	#	PRE means that it was BEFORE the reference and trimmed on the RIGHT (unless reversed)
+	#	POST means that it was AFTER the reference and trimmed on the LEFT (unless reversed)
 
-	for pre_or_post in pre post ; do
+	for viral_direction in F R ; do
 
-		#	Align the chimeric reads to the human reference.
-		bowtie2 -x $human --threads $threads -f \
-			-1 $aligned.${pre_or_post}_1.fasta \
-			-2 $aligned.${pre_or_post}_2.fasta \
-			-S $aligned.$pre_or_post.bowtie2.$human.sam
-		status=$?
-		if [ $status -ne 0 ] ; then
-			date
-			echo "bowtie failed with $status"
-			exit $status
-		fi
+		for pre_or_post in pre post ; do
 
-		#	SORT BY NAME and convert to bam 
-		samtools sort -n -o $aligned.$pre_or_post.bowtie2.$human.name.bam \
-			$aligned.$pre_or_post.bowtie2.$human.sam
+			#	Align the chimeric reads to the human reference.
+			bowtie2 -x $human --threads $threads -f \
+				-1 $aligned.$viral_direction.${pre_or_post}_1.fasta \
+				-2 $aligned.$viral_direction.${pre_or_post}_2.fasta \
+				-S $aligned.$viral_direction.$pre_or_post.bowtie2.$human.sam
+			status=$?
+			if [ $status -ne 0 ] ; then
+				date
+				echo "bowtie failed with $status"
+				exit $status
+			fi
 
-		#	SORT and convert to bam and remove the sam.
-		samtools sort -o $aligned.$pre_or_post.bowtie2.$human.position.bam \
-			$aligned.$pre_or_post.bowtie2.$human.sam
-		rm $aligned.$pre_or_post.bowtie2.$human.sam
+			#	SORT BY NAME and convert to bam
+			samtools sort -n -o $aligned.$viral_direction.$pre_or_post.bowtie2.$human.name.bam \
+				$aligned.$viral_direction.$pre_or_post.bowtie2.$human.sam
 
-		#	Index now so don't have to before running IGV
-		samtools index $aligned.$pre_or_post.bowtie2.$human.position.bam
+			#	SORT and convert to bam and remove the sam.
+			samtools sort -o $aligned.$viral_direction.$pre_or_post.bowtie2.$human.position.bam \
+				$aligned.$viral_direction.$pre_or_post.bowtie2.$human.sam
+			rm $aligned.$viral_direction.$pre_or_post.bowtie2.$human.sam
+
+			#	Index now so don't have to before running IGV
+			samtools index $aligned.$viral_direction.$pre_or_post.bowtie2.$human.position.bam
+
+		done
 
 	done
 
@@ -309,37 +313,34 @@ bowtie2 --version
 
 		#	chimera_paired_insertion_point.awk expecting BOTH READS! Remove the 4 flag. Ehh...
 
-		#	As the flags are read specific, using them here and expecting samtools to 
-		#	return both mates is seeming to be impossible. 
+		#	As the flags are read specific, using them here and expecting samtools to
+		#	return both mates is seeming to be impossible.
 		#	The logic will need to be moved to the awk script.
 		#	based on shortest (trimmed) read and given direction and pre_or_post
 
 		# -f 2 -F 12 (-F 12 is redundant as -f 2 implies both aligned)
 
-#		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.name.bam \
-#		samtools view -q $q -f 2 -F 16 $aligned.pre.bowtie2.$human.name.bam \
-		samtools view -q $q -f 2 $aligned.pre.bowtie2.$human.name.bam \
+		samtools view -q $q -f 2 $aligned.F.pre.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=pre -v logging=1 \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
-#		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.name.bam \
-#		samtools view -q $q -f 2 -F 16 $aligned.post.bowtie2.$human.name.bam \
-		samtools view -q $q -f 2 $aligned.post.bowtie2.$human.name.bam \
+
+		samtools view -q $q -f 2 $aligned.F.post.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=post -v logging=1 \
 			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
+
 		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
 			$aligned.*.bowtie2.$human.$mapq.insertion_points \
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
 
-#		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.name.bam \
-#		samtools view -q $q -f 18 $aligned.pre.bowtie2.$human.name.bam \
-		samtools view -q $q -f 2 $aligned.pre.bowtie2.$human.name.bam \
+
+		samtools view -q $q -f 2 $aligned.R.pre.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=pre -v logging=1 \
 			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
-#		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.name.bam \
-#		samtools view -q $q -f 18 $aligned.post.bowtie2.$human.name.bam \
-		samtools view -q $q -f 2 $aligned.post.bowtie2.$human.name.bam \
+
+		samtools view -q $q -f 2 $aligned.R.post.bowtie2.$human.name.bam \
 			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=post -v logging=1 \
 			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
+
 		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
 			$aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
 			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
@@ -353,7 +354,7 @@ bowtie2 --version
 	echo "Finished at ..."
 	date
 
-} 1>>$base.$script.out 2>&1 
+} 1>>$base.$script.out 2>&1
 
 #	Don't run in the background by default
 #	&

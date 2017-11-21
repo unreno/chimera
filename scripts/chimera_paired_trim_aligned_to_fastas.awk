@@ -11,10 +11,10 @@ function reverse_complement(s){
 		x=x comp[substr(s,i,1)];
 	return x;
 }
-function print_to_fasta(a){
+function print_to_fasta(a,dir){
 	lane=(and(a[2],64))?"1":"2";
-	print ">"a[1]"/"lane >> base"."pre_or_post"_"lane".fasta"
-	print a[10]          >> base"."pre_or_post"_"lane".fasta"
+	print ">"a[1]"/"lane >> base"."dir"."pre_or_post"_"lane".fasta"
+	print a[10]          >> base"."dir"."pre_or_post"_"lane".fasta"
 }
 function trim(r){
 	#	Ensure at least 2-digit soft clip and ensure matches near the beginning of the reference.
@@ -105,9 +105,17 @@ BEGIN {
 			lg( "Trimmed" )
 			lg( b[10] )
 			if( b[10] != before_trim ){
-				if( and(b[2],16) ) l[10]=reverse_complement(l[10])
-				print_to_fasta( b )
-				print_to_fasta( l )
+#				if( and(b[2],16) ) l[10]=reverse_complement(l[10])
+#	Reversing mate to match makes bowtie infer discordant pair alignment.
+#	Expects opposite orientation so reverse read back instead.
+#	Reverse this read rather than its mate to match.
+				dir="F"
+				if( and(b[2],16) ){
+					b[10]=reverse_complement(b[10])
+					dir="R"
+				}
+				print_to_fasta( b, dir )
+				print_to_fasta( l, dir )
 			} else {
 				lg( "No change in trimming so not written to fasta files" )
 			}
@@ -121,9 +129,17 @@ BEGIN {
 			lg( "Trimmed" )
 			lg( l[10] )
 			if( l[10] != before_trim ){
-				if( and(l[2],16) ) b[10]=reverse_complement(b[10])
-				print_to_fasta( b )
-				print_to_fasta( l )
+#				if( and(l[2],16) ) b[10]=reverse_complement(b[10])
+#	Reversing mate to match makes bowtie infer discordant pair alignment.
+#	Expects opposite orientation so reverse read back instead.
+#	Reverse this read rather than its mate to match.
+				dir="F"
+				if( and(l[2],16) ){
+					l[10]=reverse_complement(l[10])
+					dir="R"
+				}
+				print_to_fasta( b, dir )
+				print_to_fasta( l, dir )
 			} else {
 				lg( "No change in trimming so not written to fasta files" )
 			}

@@ -43,7 +43,8 @@ BEGIN{
 		for(i=0;i<=NF;i++)s[i]=b[i];
 	}
 
-	lg( direction )
+	lg( "Human aligned direction: " (and(s[2],16))? "reverse" : "forward" )
+	lg( "Viral aligned direction: " direction )
 	lg( pre_or_post )
 	lg( "insertion point" )
 
@@ -54,15 +55,36 @@ BEGIN{
 	#	PRE means that it was BEFORE the reference and trimmed on the RIGHT
 	#	POST means that it was AFTER the reference and trimmed on the LEFT
 
+#	As i've now reversed the trimmed read, pre and post are irrelevant.  no!
+
+#	PRE - viral align FORWARD - human align FORWARD - insertion point on RIGHT (pos + length)
+#	PRE - viral align FORWARD - human align REVERSE - insertion point on LEFT (pos)
+#	PRE - viral align REVERSE - TRIMMED/REVERSED - human align FORWARD - insertion point on LEFT (pos)
+#	PRE - viral align REVERSE - TRIMMED/REVERSED - human align REVERSE - insertion point on RIGHT (pos + length)
+#	POST - viral align FORWARD - human align FORWARD - insertion point on LEFT (pos)
+#	POST - viral align FORWARD - human align REVERSE - insertion point on RIGHT (pos + length)
+#	POST - viral align REVERSE - TRIMMED/REVERSED - human align FORWARD - insertion point on RIGHT (pos + length)
+#	POST - viral align REVERSE - TRIMMED/REVERSED - human align REVERSE - insertion point on LEFT (pos)
+
+	#	direction = VIRAL alignment direction
+
 	if( \
 		( !and(s[2],16) && direction == "F" && pre_or_post == "pre" ) ||
-		(  and(s[2],16) && direction == "R" && pre_or_post == "post" ) ){
+		(  and(s[2],16) && direction == "R" && pre_or_post == "pre" ) ||
+		(  and(s[2],16) && direction == "F" && pre_or_post == "post" ) ||
+		( !and(s[2],16) && direction == "R" && pre_or_post == "post" ) ){
+#		( !and(s[2],16) && direction == "F" && pre_or_post == "pre" ) ||
+#		(  and(s[2],16) && direction == "R" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]+length(s[10])
 			lg( "position plus length" )
 			lg( s[4]+length(s[10]) )
 	} else if( \
-		(  and(s[2],16) && direction == "R" && pre_or_post == "pre" ) ||
-		( !and(s[2],16) && direction == "F" && pre_or_post == "post" ) ){
+		(  and(s[2],16) && direction == "F" && pre_or_post == "pre" ) ||
+		( !and(s[2],16) && direction == "R" && pre_or_post == "pre" ) ||
+		( !and(s[2],16) && direction == "F" && pre_or_post == "post" ) ||
+		(  and(s[2],16) && direction == "R" && pre_or_post == "post" ) ){
+#		(  and(s[2],16) && direction == "R" && pre_or_post == "pre" ) ||
+#		( !and(s[2],16) && direction == "F" && pre_or_post == "post" ) ){
 			print s[3]"|"s[4]
 			lg( "position" )
 			lg( s[4] )
