@@ -11,15 +11,31 @@ BEGIN{
 }
 
 #  Non-reference lines, with a mapped reference, not matching previous sequence name
+( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] == "" ) ){
+	#  Buffer first occurence of sequence name.
+	for(i=0;i<=NF;i++)b[i]=$i;
+
+	lg( "Buffering new pair" )
+	lg( $0 )
+	next;	#	WILL run next block too, unless next
+		#	previously, this resulted in BOTH points included
+}
+
+
+#  es, with a mapped reference, not matching previous sequence name
 ( ( !/^@/ ) && ( $3 != "*" ) && ( b[1] != $1 ) ){
 	#  Buffer first occurence of sequence name.
 	for(i=0;i<=NF;i++)b[i]=$i;
 
-	lg( "Buffer new" )
+	lg( "WARNING: Read didn't match buffered line read. Out of order? Singleton?" );
+	lg( "Buffering new pair" )
 	lg( $0 )
 	next;	#	WILL run next block too, unless next
 		#	previously, this resulted in BOTH points included
-}  
+}
+
+
+
 #  Non-reference lines, with a mapped reference, MATCHING previous sequence name
 #
 #		Does the pair matching the same reference chromosome matter here?
@@ -45,7 +61,7 @@ BEGIN{
 
 	lg( "Viral aligned direction: " direction )
 	lg( pre_or_post )
-	lg( "Human aligned direction: " (and(s[2],16))? "R" : "F" )
+	lg( "Human aligned direction: " ((and(s[2],16))? "R" : "F" ) )
 
 #	s[2] is the flag field
 #	 and(s[2],16) = REVERSE
@@ -90,5 +106,6 @@ BEGIN{
 	} else {
 		lg( "Skipping as does not match alignment orientation" )
 	}
+	delete b;
 	next;
 }
