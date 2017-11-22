@@ -62,6 +62,22 @@ for file in `find ./ -maxdepth 2 -type f -name $1` ; do
 	#	${VARIABLE,,} converts to lowercase
 	#[[ ${ext} =~ overlappers ]] && direction='F' || direction='R'	#	FAIL, both match
 	[[ ${ext} == overlappers ]] && direction='F' || direction='R'
+
+	case ${ext} in
+		overlappers)
+			direction='F';;
+		rc_overlappers)
+			direction='R';;
+		frc_overlappers)
+			direction='FR';;
+		rcf_overlappers)
+			direction='RF';;
+		*)
+			direction='X';;
+	esac
+
+
+
 #	echo $direction
 
 #	TCGA-41-5651-10A/TCGA-41-5651-10A.bowtie2.herv_k113_ltr_ends.__very_sensitive_local.aligned.both_ltr.bowtie2.hg19.rc_insertion_points.rc_overlappers
