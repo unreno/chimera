@@ -78,7 +78,9 @@ bowtie2 --version
 		cd $base_dir
 
 		#	realpath returns a full absolute path without links
-		sample=$( realpath $1 )
+		#sample=$( realpath $1 )
+		#	Keep the link names rather than the targets
+		sample=$( realpath --no-symlinks $1 )
 		#	could also use "readlink -f $1"
 
 		echo $sample
@@ -110,12 +112,24 @@ bowtie2 --version
 
 		cd $working_dir
 
-		sample_basename=$( basename $sample )	#	just the file name, no path
-		mkdir -p $sample_basename
-		cd $sample_basename
+		sample_dirname=$( basename $sample )	#	just the file name, no path
+#		sample_dirname=${sample_dirname%%.*}	#	strip off everything after the first . (PROBLEMATIC)
+		#	strip off any expected extensions
+		sample_dirname=${sample_dirname%.gz}
+		#	really can only be one of the following
+		sample_dirname=${sample_dirname%.bam}
+		sample_dirname=${sample_dirname%.sam}
+		sample_dirname=${sample_dirname%.fasta}
+		sample_dirname=${sample_dirname%.fastq}
+		sample_dirname=${sample_dirname%.fa}
+		sample_dirname=${sample_dirname%.fq}
+		mkdir -p $sample_dirname
+		cd $sample_dirname
 
+		sample_basename=$( basename $sample )	#	just the file name, no path
 		#	file list could be sample1.bam and sample1.bam.gz
 		#	so remember any and all of the extensions
+#	this may be moot now
 		initial_sample_basename=$sample_basename
 
 		#	for .sam.gz and .bam.gz
