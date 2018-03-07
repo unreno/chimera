@@ -20,8 +20,8 @@
 #	Eventually, may want to pass number of cpus or threads so
 #	execs can use the same number.
 
-script=`basename $0`
-basedir=`dirname $0`
+script=$( basename $0 )
+basedir=$( dirname $0 )
 human='hg19'
 viral='herv_k113'
 threads=2
@@ -103,7 +103,7 @@ fi
 #echo "lane_1:$lane_1:"
 #echo "lane_2:$lane_2:"
 
-base=`basename $PWD`
+base=$( basename $PWD )
 
 #	Print a lot more stuff
 set -x
@@ -116,12 +116,7 @@ bowtie2 --version
 	date
 
 	if [ -n "$bam" -a -r "$bam" ] ; then
-#		bamToFastq -i $bam -fq $lane_1 -fq2 $lane_2
-#		samtools fastq $bam -1 $lane_1 -2 $lane_2
-		samtools fasta $bam -1 $lane_1 -2 $lane_2
-#	else
-#		echo "$bam doesn't exist."
-#		exit 9999
+		samtools fasta -N -1 $lane_1 -2 $lane_2 $bam
 	fi
 
 
@@ -142,91 +137,6 @@ bowtie2 --version
 	base="$base.bowtie2.$viral.very_sensitive_local.paired"
 	aligned="$base.aligned"
 
-
-
-
-
-
-#	#	I think that using --all here would be a good idea, theoretically.
-#	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
-#	#	I did try and compare and the final results were identical.
-#	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-#		$filetype -1 $lane_1 -2 $lane_2 -S $base.sam
-#
-##		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
-##	samtools does not seem to process STDIN pipe, so can't do that.
-##	Actually, it may but you might have to use - as the filename.
-#
-##	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
-##	That would remove the need to convert and delete later.
-##	Would save on disk space if that's an issue.
-##	May require more memory to do the pipe processing though.
-#
-#	status=$?
-#	if [ $status -ne 0 ] ; then
-#		date
-#		echo "bowtie failed with $status"
-#		exit $status
-#	fi
-#
-#	#	keep for reference
-#	samtools view -b -F 4 -f 8 -o $aligned.bam $base.sam
-#
-#	#	requires bash >= 4.0
-#	#	${VARIABLE^^} converts to uppercase
-#	#	${VARIABLE,,} converts to lowercase
-#
-#	#
-#	#	Find alignments that align past the appropriate end of the ends of the ltr.
-#	#
-#	#    f4 = unmapped
-#	#    F4 = NOT unmapped = mapped
-#	#    F8 = mate NOT unmapped = mate mapped
-#	#
-#	#	Older versions of awk do not directly support "interval expressions",
-#	#		ie ({4}, {4,}, {4,6})
-#	#	Need a newer version or add the --posix option
-#
-#	samtools view -h $base.sam | awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
-#
-#	rm $base.sam
-
-
-
-
-
-
-
-
-
-
-
-
-
-	#	Less disk
-
-#	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-#		$filetype -1 $lane_1 -2 $lane_2 | samtools view -b -o $base.bam -
-
-
-#	#	Even less disk
-#	#	gawk needed for bit math "and"
-#	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-#		$filetype -1 $lane_1 -2 $lane_2 \
-#		| gawk -F"\t" '
-#			( /^@/ ){ print; next; }
-#			( !and($2,4) || !and($2,8) ){ print }
-#		' \
-#		| samtools view -b -o $base.bam -
-#
-#
-#
-##	Unused and unneeded
-##	samtools view -b -F 4 -f 8 -o $aligned.bam $base.bam
-#
-#	samtools view -h $base.bam \
-#		| awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
-
 	#	gawk script filters those where at least 1 read aligned
 	bowtie2 --very-sensitive-local --threads $threads -x $viral \
 		$filetype -1 $lane_1 -2 $lane_2 \
@@ -235,19 +145,6 @@ bowtie2 --version
 			( xor ( !and($2,4), !and($2,8) ) ){ print }
 		' \
 		| awk -v base=$aligned -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
-#		| awk -v base=$aligned -v logging=1 -f $basedir/chimera_paired_trim_aligned_to_fastas.awk
-
-#	This is NOT XOR so will include those pairs where both match.
-#			( !and($2,4) || !and($2,8) ){ print }
-#	The awk script will deal with that.
-#	The following might work, if needed.
-#			( xor ( !and($2,4), !and($2,8) ) ){ print }
-
-
-
-
-
-
 
 
 
@@ -272,7 +169,6 @@ bowtie2 --version
 					if [ $status -ne 0 ] ; then
 						date
 						echo "bowtie failed with $status"
-	#					echo "Continuing, but beware"
 						exit $status
 					fi
 	
@@ -331,8 +227,8 @@ bowtie2 --version
 	
 			# -f 2 -F 12 (-F 12 is redundant as -f 2 implies both aligned)
 	
-	#	Add -v logging=1 to chimera_paired_insertion_point.awk call when debugging
-	#	Also chimera_paired_trim_aligned_to_fastas.awk above
+			#	Add -v logging=1 to chimera_paired_insertion_point.awk call when debugging
+			#	Also chimera_paired_trim_aligned_to_fastas.awk above
 	
 			samtools view -q $q -f 2 $aligned.F.pre.bowtie2.$human_ref.name.bam \
 				| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=pre \
@@ -343,7 +239,7 @@ bowtie2 --version
 				| sort > $aligned.post.bowtie2.$human_ref.$mapq.insertion_points
 	
 	
-	#	This will likely find nothing.
+			#	This will likely find nothing.
 			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
 				$aligned.*.bowtie2.$human_ref.$mapq.insertion_points \
 				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.insertion_points.overlappers
@@ -358,48 +254,26 @@ bowtie2 --version
 				| sort > $aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points
 	
 	
-	#	This will likely find nothing.
+			#	This will likely find nothing.
 			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
 				$aligned.*.bowtie2.$human_ref.$mapq.rc_insertion_points \
 				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rc_insertion_points.rc_overlappers
 	
 	
-	#	I think that this one would imply that the virus is inserted reverse complement
+			#	I think that this one would imply that the virus is inserted reverse complement
 			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
 				$aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points \
 				$aligned.pre.bowtie2.$human_ref.$mapq.insertion_points \
 				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.frc_insertion_points.frc_overlappers
 	
 	
-	#	And this one would imply that the virus is inserted forward.
-	#	Lane 1 of the PRE is forward, Lane 2 is reverse complement
-	#	This one is rather popular
+			#	And this one would imply that the virus is inserted forward.
+			#	Lane 1 of the PRE is forward, Lane 2 is reverse complement
+			#	This one is rather popular
 			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
 				$aligned.post.bowtie2.$human_ref.$mapq.insertion_points \
 				$aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points \
 				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rcf_insertion_points.rcf_overlappers
-	
-	
-	
-	
-	
-	#
-	#		cat $aligned.pre.bowtie2.$human_ref.$mapq.insertion_points \
-	#				$aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points \
-	#			> $aligned.both.bowtie2.$human.$mapq.PRE_insertion_points
-	#
-	#		cat $aligned.post.bowtie2.$human.$mapq.insertion_points \
-	#				$aligned.post.bowtie2.$human.$mapq.rc_insertion_points \
-	#			> $aligned.both.bowtie2.$human.$mapq.POST_insertion_points \
-	#
-	#		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-	#			$aligned.both.bowtie2.$human.$mapq.POST_insertion_points \
-	#			$aligned.both.bowtie2.$human.$mapq.PRE_insertion_points \
-	#			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.PRE_POST_insertion_points.overlappers
-	#
-	
-	
-	
 	
 		done
 

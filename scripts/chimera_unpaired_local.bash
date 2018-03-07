@@ -20,8 +20,8 @@
 #	Eventually, may want to pass number of cpus or threads so
 #	execs can use the same number.
 
-script=`basename $0`
-basedir=`dirname $0`
+script=$( basename $0 )
+basedir=$( dirname $0 )
 human='hg19'
 viral='herv_k113'
 threads=2
@@ -76,7 +76,7 @@ done
 #       Basically, this is TRUE AND DO ...
 [ $# -eq 0 ] && usage
 
-base=`basename $PWD`
+base=$( basename $PWD )
 
 #	Print a lot more stuff
 set -x
@@ -108,56 +108,6 @@ bowtie2 --version
 
 	base="$base.bowtie2.$viral.very_sensitive_local.unpaired"
 
-#	#	I think that using --all here would be a good idea, theoretically.
-#	#	Bowtie2 seems to prefer to soft clip over ends rather than over unknown bp though.
-#	#	I did try and compare and the final results were identical.
-#	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-#		$filetype $files -S $base.sam
-#
-##		$filetype $files | samtools view -b -F 4 > $base.aligned.bam
-##	samtools does not seem to process STDIN pipe, so can't do that.
-##	Actually, it may but you might have to use - as the filename.
-#
-##	I could let the output go to STDOUT then pipe to samtools view -b -F 4 -o $base.bam
-##	That would remove the need to convert and delete later.
-##	Would save on disk space if that's an issue.
-##	May require more memory to do the pipe processing though.
-#
-#	status=$?
-#	if [ $status -ne 0 ] ; then
-#		date
-#		echo "bowtie failed with $status"
-#		exit $status
-#	fi
-#
-#	aligned="$base.aligned"
-#	samtools view -b -F 4 -o $aligned.bam $base.sam
-#	rm $base.sam
-
-#	aligned="$base.aligned"
-#	bowtie2 --very-sensitive-local --threads $threads -x $viral \
-#		$filetype $files \
-#		| samtools view -b -F 4 -o $aligned.bam -
-#
-#
-#	#	requires bash >= 4.0
-#	#	${VARIABLE^^} converts to uppercase
-#	#	${VARIABLE,,} converts to lowercase
-#
-#	#
-#	#	Find alignments that align past the appropriate end of the ends of the ltr.
-#	#
-#	#    f4 = unmapped
-#	#    F4 = NOT unmapped = mapped
-#	#    F8 = mate NOT unmapped = mate mapped
-#	#
-#	#	Older versions of awk do not directly support "interval expressions",
-#	#		ie ({4}, {4,}, {4,6})
-#	#	Need a newer version or add the --posix option
-#
-#	#	Using -F 4 here again, seems unnecessary.
-#	samtools view -h -F 4 $aligned.bam \
-#		| gawk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
 
 	#	I think that I can do this in one step.
 	aligned="$base.aligned"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-script=`basename $0`
+script=$( basename $0 )
 viral='herv_k113'
 human='hg19'
 threads=2
@@ -113,7 +113,7 @@ bowtie2 --version
 		cd $working_dir
 
 		sample_dirname=$( basename $sample )	#	just the file name, no path
-#		sample_dirname=${sample_dirname%%.*}	#	strip off everything after the first . (PROBLEMATIC)
+
 		#	strip off any expected extensions
 		sample_dirname=${sample_dirname%.gz}
 		#	really can only be one of the following
