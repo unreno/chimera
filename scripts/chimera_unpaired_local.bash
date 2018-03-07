@@ -167,64 +167,68 @@ bowtie2 --version
 		| gawk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
 
 
-	for pre_or_post in pre post ; do
+	for human_ref in ${human/,/ } ; do
 
-		#	Align the chimeric reads to the human reference.
-		bowtie2 -x $human --threads $threads -f -U $aligned.$pre_or_post.fasta \
-			-S $aligned.$pre_or_post.bowtie2.$human.sam
-		status=$?
-		if [ $status -ne 0 ] ; then
-			date
-			echo "bowtie failed with $status"
-			exit $status
-		fi
+		for pre_or_post in pre post ; do
+	
+			#	Align the chimeric reads to the human reference.
+			bowtie2 -x $human_ref --threads $threads -f -U $aligned.$pre_or_post.fasta \
+				-S $aligned.$pre_or_post.bowtie2.$human_ref.sam
+			status=$?
+			if [ $status -ne 0 ] ; then
+				date
+				echo "bowtie failed with $status"
+				exit $status
+			fi
+	
+			#	SORT and convert to bam and remove the sam.
+			samtools sort -o $aligned.$pre_or_post.bowtie2.$human_ref.bam \
+				$aligned.$pre_or_post.bowtie2.$human_ref.sam
+			rm $aligned.$pre_or_post.bowtie2.$human_ref.sam
+	
+			#	Index now so don't have to before running IGV
+			samtools index $aligned.$pre_or_post.bowtie2.$human_ref.bam
+	
+		done
+	
+		#	find insertion points
+		#	then find those with the signature overlap
+	
+		#	 f = ALL/YES
+		#	 F = NONE/NOT	(results in double negatives)
+		#	 4 = not aligned
+		#	 8 = mate not aligned
+		#	16 = reverse complement
+	
+		echo "Seeking insertion points and overlaps"
+	
+		for q in 20 10 00 ; do
+			echo $q
+			mapq="Q${q}"
+	
+			samtools view -q $q -F 20 $aligned.pre.bowtie2.$human_ref.bam \
+				| awk '{print $3"|"$4+length($10)}' \
+				| sort > $aligned.pre.bowtie2.$human_ref.$mapq.insertion_points
+			samtools view -q $q -F 20 $aligned.post.bowtie2.$human_ref.bam \
+				| awk '{print $3"|"$4}' \
+				| sort > $aligned.post.bowtie2.$human_ref.$mapq.insertion_points
+			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+				$aligned.*.bowtie2.$human_ref.$mapq.insertion_points \
+				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.insertion_points.overlappers
+	
+			samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human_ref.bam \
+				| awk '{print $3"|"$4}' \
+				| sort > $aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points
+			samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human_ref.bam \
+				| awk '{print $3"|"$4+length($10)}' \
+				| sort > $aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points
+			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+				$aligned.*.bowtie2.$human_ref.$mapq.rc_insertion_points \
+				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rc_insertion_points.rc_overlappers
+	
+		done
 
-		#	SORT and convert to bam and remove the sam.
-		samtools sort -o $aligned.$pre_or_post.bowtie2.$human.bam \
-			$aligned.$pre_or_post.bowtie2.$human.sam
-		rm $aligned.$pre_or_post.bowtie2.$human.sam
-
-		#	Index now so don't have to before running IGV
-		samtools index $aligned.$pre_or_post.bowtie2.$human.bam
-
-	done
-
-	#	find insertion points
-	#	then find those with the signature overlap
-
-	#	 f = ALL/YES
-	#	 F = NONE/NOT	(results in double negatives)
-	#	 4 = not aligned
-	#	 8 = mate not aligned
-	#	16 = reverse complement
-
-	echo "Seeking insertion points and overlaps"
-
-	for q in 20 10 00 ; do
-		echo $q
-		mapq="Q${q}"
-
-		samtools view -q $q -F 20 $aligned.pre.bowtie2.$human.bam \
-			| awk '{print $3"|"$4+length($10)}' \
-			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
-		samtools view -q $q -F 20 $aligned.post.bowtie2.$human.bam \
-			| awk '{print $3"|"$4}' \
-			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
-		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-			$aligned.*.bowtie2.$human.$mapq.insertion_points \
-			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
-
-		samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human.bam \
-			| awk '{print $3"|"$4}' \
-			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
-		samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human.bam \
-			| awk '{print $3"|"$4+length($10)}' \
-			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
-		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-			$aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
-			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
-
-	done
+	done	#	for human_ref in ${human/,/ } ; do
 
 	echo
 	echo "Finished at ..."

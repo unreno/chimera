@@ -251,159 +251,159 @@ bowtie2 --version
 
 
 
+	for human_ref in ${human/,/ } ; do
 
-	#	PRE means that it was BEFORE the reference and trimmed on the RIGHT (unless reversed)
-	#	POST means that it was AFTER the reference and trimmed on the LEFT (unless reversed)
-
-	for viral_direction in F R ; do
-
-		for pre_or_post in pre post ; do
-
-			if [ -f $aligned.$viral_direction.${pre_or_post}_1.fasta -a \
-					 -f $aligned.$viral_direction.${pre_or_post}_2.fasta ] ; then
-
-				#	Align the chimeric reads to the human reference.
-				bowtie2 -x $human --threads $threads -f \
-					-1 $aligned.$viral_direction.${pre_or_post}_1.fasta \
-					-2 $aligned.$viral_direction.${pre_or_post}_2.fasta \
-					-S $aligned.$viral_direction.$pre_or_post.bowtie2.$human.sam
-				status=$?
-				if [ $status -ne 0 ] ; then
-					date
-					echo "bowtie failed with $status"
-#					echo "Continuing, but beware"
-					exit $status
+		#	PRE means that it was BEFORE the reference and trimmed on the RIGHT (unless reversed)
+		#	POST means that it was AFTER the reference and trimmed on the LEFT (unless reversed)
+	
+		for viral_direction in F R ; do
+	
+			for pre_or_post in pre post ; do
+	
+				if [ -f $aligned.$viral_direction.${pre_or_post}_1.fasta -a \
+						 -f $aligned.$viral_direction.${pre_or_post}_2.fasta ] ; then
+	
+					#	Align the chimeric reads to the human reference.
+					bowtie2 -x $human_ref --threads $threads -f \
+						-1 $aligned.$viral_direction.${pre_or_post}_1.fasta \
+						-2 $aligned.$viral_direction.${pre_or_post}_2.fasta \
+						-S $aligned.$viral_direction.$pre_or_post.bowtie2.$human_ref.sam
+					status=$?
+					if [ $status -ne 0 ] ; then
+						date
+						echo "bowtie failed with $status"
+	#					echo "Continuing, but beware"
+						exit $status
+					fi
+	
+					#	SORT BY NAME and convert to bam
+					samtools sort -n -o $aligned.$viral_direction.$pre_or_post.bowtie2.$human_ref.name.bam \
+						$aligned.$viral_direction.$pre_or_post.bowtie2.$human_ref.sam
+	
+					#	SORT and convert to bam and remove the sam.
+					samtools sort -o $aligned.$viral_direction.$pre_or_post.bowtie2.$human_ref.position.bam \
+						$aligned.$viral_direction.$pre_or_post.bowtie2.$human_ref.sam
+					rm $aligned.$viral_direction.$pre_or_post.bowtie2.$human_ref.sam
+	
+					#	Index now so don't have to before running IGV
+					samtools index $aligned.$viral_direction.$pre_or_post.bowtie2.$human_ref.position.bam
+	
+				else
+					echo "$aligned.$viral_direction.${pre_or_post}_1.fasta or"
+					echo "$aligned.$viral_direction.${pre_or_post}_2.fasta not found"
 				fi
-
-				#	SORT BY NAME and convert to bam
-				samtools sort -n -o $aligned.$viral_direction.$pre_or_post.bowtie2.$human.name.bam \
-					$aligned.$viral_direction.$pre_or_post.bowtie2.$human.sam
-
-				#	SORT and convert to bam and remove the sam.
-				samtools sort -o $aligned.$viral_direction.$pre_or_post.bowtie2.$human.position.bam \
-					$aligned.$viral_direction.$pre_or_post.bowtie2.$human.sam
-				rm $aligned.$viral_direction.$pre_or_post.bowtie2.$human.sam
-
-				#	Index now so don't have to before running IGV
-				samtools index $aligned.$viral_direction.$pre_or_post.bowtie2.$human.position.bam
-
-			else
-				echo "$aligned.$viral_direction.${pre_or_post}_1.fasta or"
-				echo "$aligned.$viral_direction.${pre_or_post}_2.fasta not found"
-			fi
-
+	
+			done
+	
+		done
+	
+	
+		echo "Seeking insertion points and overlaps"
+	
+		for q in 20 10 00 ; do
+			echo $q
+			mapq="Q${q}"
+	
+			#	use name sorted bam as awk script expecting them in order
+			#	add -f 2 to get PROPER_PAIR
+	
+			#	-f = ALL of ...
+			#	-F = NONE of ...
+	
+			#  2 = read and mate aligned a proper concordant pair (very desireable)
+			#  4 = read UNMAPPED ( -F 4 = MAPPED )
+			#  8 = read's MATE UNMAPPED
+			# 16 = read REVERSED
+			# 18 = 16,2 ( -f 18 = proper pair alignment, reversed )
+			# 20 = 16,4 ( -F 20 = not unmapped, not reverse = MAPPED FORWARD )
+			# 32 = read's MATE REVERSED
+	
+			#	This is getting funky.
+			#	Can the reads be aligned proper paired, but in different directions? YES YES YES, sadly.
+			#		unlikely to have REVERSE and MREVERSE
+	
+			#	chimera_paired_insertion_point.awk expecting BOTH READS! Remove the 4 flag. Ehh...
+	
+			#	As the flags are read specific, using them here and expecting samtools to
+			#	return both mates is seeming to be impossible.
+			#	The logic will need to be moved to the awk script.
+			#	based on shortest (trimmed) read and given direction and pre_or_post
+	
+			# -f 2 -F 12 (-F 12 is redundant as -f 2 implies both aligned)
+	
+	#	Add -v logging=1 to chimera_paired_insertion_point.awk call when debugging
+	#	Also chimera_paired_trim_aligned_to_fastas.awk above
+	
+			samtools view -q $q -f 2 $aligned.F.pre.bowtie2.$human_ref.name.bam \
+				| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=pre \
+				| sort > $aligned.pre.bowtie2.$human_ref.$mapq.insertion_points
+	
+			samtools view -q $q -f 2 $aligned.F.post.bowtie2.$human_ref.name.bam \
+				| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=post \
+				| sort > $aligned.post.bowtie2.$human_ref.$mapq.insertion_points
+	
+	
+	#	This will likely find nothing.
+			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+				$aligned.*.bowtie2.$human_ref.$mapq.insertion_points \
+				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.insertion_points.overlappers
+	
+	
+			samtools view -q $q -f 2 $aligned.R.pre.bowtie2.$human_ref.name.bam \
+				| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=pre \
+				| sort > $aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points
+	
+			samtools view -q $q -f 2 $aligned.R.post.bowtie2.$human_ref.name.bam \
+				| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=post \
+				| sort > $aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points
+	
+	
+	#	This will likely find nothing.
+			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+				$aligned.*.bowtie2.$human_ref.$mapq.rc_insertion_points \
+				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rc_insertion_points.rc_overlappers
+	
+	
+	#	I think that this one would imply that the virus is inserted reverse complement
+			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+				$aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points \
+				$aligned.pre.bowtie2.$human_ref.$mapq.insertion_points \
+				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.frc_insertion_points.frc_overlappers
+	
+	
+	#	And this one would imply that the virus is inserted forward.
+	#	Lane 1 of the PRE is forward, Lane 2 is reverse complement
+	#	This one is rather popular
+			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+				$aligned.post.bowtie2.$human_ref.$mapq.insertion_points \
+				$aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points \
+				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rcf_insertion_points.rcf_overlappers
+	
+	
+	
+	
+	
+	#
+	#		cat $aligned.pre.bowtie2.$human_ref.$mapq.insertion_points \
+	#				$aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points \
+	#			> $aligned.both.bowtie2.$human.$mapq.PRE_insertion_points
+	#
+	#		cat $aligned.post.bowtie2.$human.$mapq.insertion_points \
+	#				$aligned.post.bowtie2.$human.$mapq.rc_insertion_points \
+	#			> $aligned.both.bowtie2.$human.$mapq.POST_insertion_points \
+	#
+	#		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+	#			$aligned.both.bowtie2.$human.$mapq.POST_insertion_points \
+	#			$aligned.both.bowtie2.$human.$mapq.PRE_insertion_points \
+	#			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.PRE_POST_insertion_points.overlappers
+	#
+	
+	
+	
+	
 		done
 
-	done
-
-
-	echo "Seeking insertion points and overlaps"
-
-	for q in 20 10 00 ; do
-		echo $q
-		mapq="Q${q}"
-
-		#	use name sorted bam as awk script expecting them in order
-		#	add -f 2 to get PROPER_PAIR
-
-		#	-f = ALL of ...
-		#	-F = NONE of ...
-
-		#  2 = read and mate aligned a proper concordant pair (very desireable)
-		#  4 = read UNMAPPED ( -F 4 = MAPPED )
-		#  8 = read's MATE UNMAPPED
-		# 16 = read REVERSED
-		# 18 = 16,2 ( -f 18 = proper pair alignment, reversed )
-		# 20 = 16,4 ( -F 20 = not unmapped, not reverse = MAPPED FORWARD )
-		# 32 = read's MATE REVERSED
-
-		#	This is getting funky.
-		#	Can the reads be aligned proper paired, but in different directions? YES YES YES, sadly.
-		#		unlikely to have REVERSE and MREVERSE
-
-		#	chimera_paired_insertion_point.awk expecting BOTH READS! Remove the 4 flag. Ehh...
-
-		#	As the flags are read specific, using them here and expecting samtools to
-		#	return both mates is seeming to be impossible.
-		#	The logic will need to be moved to the awk script.
-		#	based on shortest (trimmed) read and given direction and pre_or_post
-
-		# -f 2 -F 12 (-F 12 is redundant as -f 2 implies both aligned)
-
-#	Add -v logging=1 to chimera_paired_insertion_point.awk call when debugging
-#	Also chimera_paired_trim_aligned_to_fastas.awk above
-
-		samtools view -q $q -f 2 $aligned.F.pre.bowtie2.$human.name.bam \
-			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=pre \
-			| sort > $aligned.pre.bowtie2.$human.$mapq.insertion_points
-
-		samtools view -q $q -f 2 $aligned.F.post.bowtie2.$human.name.bam \
-			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=F -v pre_or_post=post \
-			| sort > $aligned.post.bowtie2.$human.$mapq.insertion_points
-
-
-#	This will likely find nothing.
-		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-			$aligned.*.bowtie2.$human.$mapq.insertion_points \
-			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.insertion_points.overlappers
-
-
-		samtools view -q $q -f 2 $aligned.R.pre.bowtie2.$human.name.bam \
-			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=pre \
-			| sort > $aligned.pre.bowtie2.$human.$mapq.rc_insertion_points
-
-		samtools view -q $q -f 2 $aligned.R.post.bowtie2.$human.name.bam \
-			| awk -f $basedir/chimera_paired_insertion_point.awk -v direction=R -v pre_or_post=post \
-			| sort > $aligned.post.bowtie2.$human.$mapq.rc_insertion_points
-
-
-#	This will likely find nothing.
-		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-			$aligned.*.bowtie2.$human.$mapq.rc_insertion_points \
-			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rc_insertion_points.rc_overlappers
-
-
-#	I think that this one would imply that the virus is inserted reverse complement
-		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-			$aligned.post.bowtie2.$human.$mapq.rc_insertion_points \
-			$aligned.pre.bowtie2.$human.$mapq.insertion_points \
-			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.frc_insertion_points.frc_overlappers
-
-
-#	And this one would imply that the virus is inserted forward.
-#	Lane 1 of the PRE is forward, Lane 2 is reverse complement
-#	This one is rather popular
-		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-			$aligned.post.bowtie2.$human.$mapq.insertion_points \
-			$aligned.pre.bowtie2.$human.$mapq.rc_insertion_points \
-			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.rcf_insertion_points.rcf_overlappers
-
-
-
-
-
-#
-#		cat $aligned.pre.bowtie2.$human.$mapq.insertion_points \
-#				$aligned.pre.bowtie2.$human.$mapq.rc_insertion_points \
-#			> $aligned.both.bowtie2.$human.$mapq.PRE_insertion_points
-#
-#		cat $aligned.post.bowtie2.$human.$mapq.insertion_points \
-#				$aligned.post.bowtie2.$human.$mapq.rc_insertion_points \
-#			> $aligned.both.bowtie2.$human.$mapq.POST_insertion_points \
-#
-#		awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-#			$aligned.both.bowtie2.$human.$mapq.POST_insertion_points \
-#			$aligned.both.bowtie2.$human.$mapq.PRE_insertion_points \
-#			| sort | uniq -c > $aligned.both.bowtie2.$human.$mapq.PRE_POST_insertion_points.overlappers
-#
-
-
-
-
-	done
-
-
-
+	done	#	for human_ref in ${human/,/ } ; do
 
 	echo
 	echo "Finished at ..."
