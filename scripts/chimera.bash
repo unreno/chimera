@@ -201,20 +201,23 @@ bowtie2 --version
 
 #	And includes files that shouldn't be included
 
-			chimera_insertion_points_to_table.bash \*.${p}\*Q${q}\*points > ${p}_insertion_points_table.Q${q}.csv
+			chimera_insertion_points_to_table.bash \*.${p}\*${human}\*Q${q}\*points \
+				> ${p}_insertion_points_table.${human}.Q${q}.csv
 			#	This script generates a tmpfile that is just a list of ALL the insertion points.
 			#	It is unused, but kept for curiousity.
 			#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
-			mv tmpfile.\*.${p}\*Q${q}\*points.* ${p}_insertion_points.${human}.Q${q}
+			mv tmpfile.\*.${p}\*${human}\*Q${q}\*points.* ${p}_insertion_points.${human}.Q${q}
 
-			chimera_csv_table_group_rows.bash ${p}_insertion_points_table.Q${q}.csv > ${p}_insertion_points_table.Q${q}.grouped.csv
+			chimera_csv_table_group_rows.bash ${p}_insertion_points_table.Q${q}.csv \
+				> ${p}_insertion_points_table.${human}.Q${q}.grouped.csv
 
 			#	this is a TINY bit different as it preserves full file names.
-			chimera_overlappers_to_table.bash \*.${p}\*Q${q}\*overlappers > ${p}_overlappers_table.Q${q}.csv
+			chimera_overlappers_to_table.bash \*.${p}\*${human}\*Q${q}\*overlappers \
+				> ${p}_overlappers_table.${human}.Q${q}.csv
 			#	This script generates a tmpfile that is just a list of ALL the insertion points.
 			#	It is unused, but kept for curiousity.
 			#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
-			mv tmpfile.\*.${p}\*Q${q}\*overlappers.* ${p}_overlappers.${human}.Q${q}
+			mv tmpfile.\*.${p}\*${human}\*Q${q}\*overlappers.* ${p}_overlappers.${human}.Q${q}
 
 		done	#	paired unpaired
 
