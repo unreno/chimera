@@ -3,7 +3,7 @@
 
 script=$( basename $0 )
 viral='herv_k113'
-human='hg19'
+human='hg38'
 threads=2
 distance=15
 paired_and_or_unpaired="paired unpaired"
