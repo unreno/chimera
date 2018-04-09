@@ -24,8 +24,10 @@ script=$( basename $0 )
 basedir=$( dirname $0 )
 human='hg38'
 viral='herv_k113'
-threads=2
+threads=4
 distance=10
+bowtie_viral_params="--very-sensitive-local"
+#bowtie_viral_params="--local --mp 4 --ma 4 -D 15 -R 5 -i S,1,0.25 -L 3 -N 1"
 
 function usage(){
 	echo
@@ -66,7 +68,10 @@ while [ $# -ne 0 ] ; do
 			shift; lane_1=$1; shift ;;
 		-2)
 			shift; lane_2=$1; shift ;;
-		-b|--b*)
+		--bowtie_viral_params)
+			shift; bowtie_viral_params=${1}; shift ;;
+#			shift; bowtie_viral_params="--bowtie_viral_params '${1}'"; shift ;;
+		-b|--ba*)	#	order is important to ensure --b works
 			shift; bam=$1; shift ;;
 		-*)
 			echo ; echo "Unexpected args from: ${*}"; usage ;;
@@ -138,7 +143,12 @@ bowtie2 --version
 	aligned="$base.aligned"
 
 	#	gawk script filters those where at least 1 read aligned
-	bowtie2 --very-sensitive-local --threads $threads -x $viral \
+	#	--very-sensitive-local \
+	#	--local --mp 4 --ma 3 -D 25 -R 4 -i S,1,0.50 -L 3 -N 1 \
+	#	--local --mp 4 --ma 4 -D 15 -R 5 -i S,1,0.25 -L 3 -N 1 \
+echo ":${bowtie_viral_params}:"
+	bowtie2 --threads $threads -x $viral \
+		${bowtie_viral_params} \
 		$filetype -1 $lane_1 -2 $lane_2 \
 		| gawk -F"\t" '
 			( /^@/ ){ print; next; }
@@ -189,10 +199,16 @@ bowtie2 --version
 					echo "$aligned.$viral_direction.${pre_or_post}_2.fasta not found"
 				fi
 	
-			done
+			done	#	for pre_or_post in pre post ; do
 	
-		done
+		done	#	for viral_direction in F R ; do
 	
+		samtools merge $aligned.bowtie2.$human_ref.position.bam \
+			$aligned.F.pre.bowtie2.$human_ref.position.bam \
+			$aligned.F.post.bowtie2.$human_ref.position.bam \
+			$aligned.R.pre.bowtie2.$human_ref.position.bam \
+			$aligned.R.post.bowtie2.$human_ref.position.bam
+		samtools index $aligned.bowtie2.$human_ref.position.bam
 	
 		echo "Seeking insertion points and overlaps"
 	
@@ -275,7 +291,7 @@ bowtie2 --version
 				$aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points \
 				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rcf_insertion_points.rcf_overlappers
 	
-		done
+		done	#	for q in 20 10 00 ; do
 
 	done	#	for human_ref in ${human/,/ } ; do
 

@@ -24,8 +24,10 @@ script=$( basename $0 )
 basedir=$( dirname $0 )
 human='hg38'
 viral='herv_k113'
-threads=2
+threads=4
 distance=10
+bowtie_viral_params="--very-sensitive-local"
+#bowtie_viral_params="--local --mp 4 --ma 4 -D 15 -R 5 -i S,1,0.25 -L 3 -N 1"
 
 function usage(){
 	echo
@@ -65,6 +67,9 @@ while [ $# -ne 0 ] ; do
 			shift; threads=$1; shift ;;
 		-d|--d*)
 			shift; distance=$1; shift ;;
+		--bowtie_viral_params)
+			shift; bowtie_viral_params=${1}; shift ;;
+#			shift; bowtie_viral_params="--bowtie_viral_params '${1}'"; shift ;;
 		-*)
 			echo ; echo "Unexpected args from: ${*}"; usage ;;
 		*)
@@ -111,7 +116,12 @@ bowtie2 --version
 
 	#	I think that I can do this in one step.
 	aligned="$base.aligned"
-	bowtie2 --very-sensitive-local --threads $threads -x $viral \
+	#	--very-sensitive-local \
+	#	--local --mp 4 --ma 3 -D 25 -R 4 -i S,1,0.50 -L 3 -N 1 \
+	#	--local --mp 4 --ma 4 -D 15 -R 5 -i S,1,0.25 -L 3 -N 1 \
+echo ":${bowtie_viral_params}:"
+	bowtie2 --threads $threads -x $viral \
+		${bowtie_viral_params} \
 		$filetype $files \
 		| samtools view -h -F 4 - \
 		| gawk -v base=$aligned -f $basedir/chimera_unpaired_trim_aligned_to_fastas.awk
@@ -139,8 +149,13 @@ bowtie2 --version
 			#	Index now so don't have to before running IGV
 			samtools index $aligned.$pre_or_post.bowtie2.$human_ref.bam
 	
-		done
+		done	#	for pre_or_post in pre post ; do
 	
+		samtools merge $aligned.bowtie2.$human_ref.position.bam \
+			$aligned.pre.bowtie2.$human_ref.position.bam \
+			$aligned.post.bowtie2.$human_ref.position.bam
+		samtools index $aligned.bowtie2.$human_ref.position.bam
+
 		#	find insertion points
 		#	then find those with the signature overlap
 	
@@ -176,7 +191,7 @@ bowtie2 --version
 				$aligned.*.bowtie2.$human_ref.$mapq.rc_insertion_points \
 				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rc_insertion_points.rc_overlappers
 	
-		done
+		done	#	for q in 20 10 00 ; do
 
 	done	#	for human_ref in ${human/,/ } ; do
 

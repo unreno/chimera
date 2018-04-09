@@ -4,9 +4,10 @@
 script=$( basename $0 )
 viral='herv_k113'
 human='hg38'
-threads=2
+threads=4
 distance=15
 paired_and_or_unpaired="paired unpaired"
+#bowtie_viral_params="--bowtie_viral_params '--very-sensitive-local'"
 
 function usage(){
 	echo
@@ -45,6 +46,10 @@ while [ $# -ne 0 ] ; do
 			shift; distance=$1; shift ;;
 		--paired_and_or_unpaired)
 			shift; paired_and_or_unpaired=$1; shift ;;
+		--bowtie_viral_params)
+#			shift; bowtie_viral_params="--bowtie_viral_params \"${1}\""; shift ;;
+#	simply can't pass them together.
+			shift; bvp1="--bowtie_viral_params"; bvp2="$1"; shift ;;
 		-*)
 			echo ; echo "Unexpected args from: ${*}"; usage ;;
 		*)
@@ -112,7 +117,7 @@ bowtie2 --version
 
 		cd $working_dir
 
-		sample_dirname=$( basename $sample )	#	just the file name, no path
+		sample_dirname=$( basename $sample )	#	just the (first) file name, no path
 
 		#	strip off any expected extensions
 		sample_dirname=${sample_dirname%.gz}
@@ -123,6 +128,8 @@ bowtie2 --version
 		sample_dirname=${sample_dirname%.fastq}
 		sample_dirname=${sample_dirname%.fa}
 		sample_dirname=${sample_dirname%.fq}
+		#	strip off any lane?
+		sample_dirname=${sample_dirname%?R1}
 		mkdir -p $sample_dirname
 		cd $sample_dirname
 
@@ -168,12 +175,14 @@ bowtie2 --version
 
 			if [ $p == "paired" ] ; then
 				chimera_paired_local.bash --human $human --threads $threads \
+					$bvp1 "$bvp2" \
 					--viral $viral --distance $distance \
 					-1 $fast_1 -2 $fast_2
 			fi
 
 			if [ $p == "unpaired" ] ; then
 				chimera_unpaired_local.bash --human $human --threads $threads \
+					$bvp1 "$bvp2" \
 					--viral $viral --distance $distance ${fast_1},${fast_2}
 			fi
 
