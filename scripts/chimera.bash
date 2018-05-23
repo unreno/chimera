@@ -174,16 +174,27 @@ bowtie2 --version
 		for p in $paired_and_or_unpaired ; do
 
 			if [ $p == "paired" ] ; then
-				chimera_paired_local.bash --human $human --threads $threads \
-					$bvp1 "$bvp2" \
-					--viral $viral --distance $distance \
-					-1 $fast_1 -2 $fast_2
+				if [ -z "$bvp1" ] ; then
+					chimera_paired_local.bash --human $human --threads $threads \
+						--viral $viral --distance $distance \
+						-1 $fast_1 -2 $fast_2
+				else
+					chimera_paired_local.bash --human $human --threads $threads \
+						$bvp1 "$bvp2" \
+						--viral $viral --distance $distance \
+						-1 $fast_1 -2 $fast_2
+				fi
 			fi
 
 			if [ $p == "unpaired" ] ; then
-				chimera_unpaired_local.bash --human $human --threads $threads \
-					$bvp1 "$bvp2" \
-					--viral $viral --distance $distance ${fast_1},${fast_2}
+				if [ -z "$bvp1" ] ; then
+					chimera_unpaired_local.bash --human $human --threads $threads \
+						--viral $viral --distance $distance ${fast_1},${fast_2}
+				else
+					chimera_unpaired_local.bash --human $human --threads $threads \
+						$bvp1 "$bvp2" \
+						--viral $viral --distance $distance ${fast_1},${fast_2}
+				fi
 			fi
 
 		done
