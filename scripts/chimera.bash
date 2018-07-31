@@ -128,8 +128,11 @@ bowtie2 --version
 		sample_dirname=${sample_dirname%.fastq}
 		sample_dirname=${sample_dirname%.fa}
 		sample_dirname=${sample_dirname%.fq}
+
 		#	strip off any lane?
 		sample_dirname=${sample_dirname%?R1}
+		sample_dirname=${sample_dirname%.1}
+
 		mkdir -p $sample_dirname
 		cd $sample_dirname
 
