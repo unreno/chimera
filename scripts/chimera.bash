@@ -129,9 +129,13 @@ bowtie2 --version
 		sample_dirname=${sample_dirname%.fa}
 		sample_dirname=${sample_dirname%.fq}
 
+		#	strip off common "mid" extensions
+		sample_dirname=${sample_dirname%.filt}
+
 		#	strip off any lane?
 		sample_dirname=${sample_dirname%?R1}
 		sample_dirname=${sample_dirname%.1}
+		sample_dirname=${sample_dirname%_1}
 
 		mkdir -p $sample_dirname
 		cd $sample_dirname
