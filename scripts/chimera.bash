@@ -236,7 +236,7 @@ bowtie2 --version
 				#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
 				mv tmpfile.\*.${p}\*.${h}.\*Q${q}\*points.* ${p}_insertion_points.${h}.Q${q}
 
-				chimera_csv_table_group_rows.bash ${p}_insertion_points_table.Q${q}.csv \
+				chimera_csv_table_group_rows.bash ${p}_insertion_points_table.${h}.Q${q}.csv \
 					> ${p}_insertion_points_table.${h}.Q${q}.grouped.csv
 
 				#	this is a TINY bit different as it preserves full file names.
