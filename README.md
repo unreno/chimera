@@ -24,11 +24,6 @@ running bash-4.4.0, gawk-4.1.4,
 
 ##	Installation
 
-There is only 1 script at the moment, so this is a bit excessive.
-Simply copy it to wherever you like.
-
-Eventually, however, ...
-
 These scripts can be run from wherever they are. 
 They don't need to be installed.
 However, should you wish to install them in ~/.local/bin/ or elsewhere ...
