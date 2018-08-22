@@ -63,41 +63,15 @@ If these scripts have not been installed to a directory in your path, prefix the
 
 ```BASH
 cd SOME/SAMPLE
-chimera_insertions_and_overlappers.bash --viral HCMV --human hg19 Sample_1.fastq Sample_2.fastq
+chimera.bash --viral HCMV --human hg19 Sample_1.fastq Sample_2.fastq
 ```
-
-will generate
-
-```BASH
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.bam
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.fasta
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.fasta
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.bam
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.bam
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q20.insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q20.insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q20.rc_insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q20.rc_insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q20.insertion_points.overlappers
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q20.rc_insertion_points.rc_overlappers
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q10.insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q10.insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q10.rc_insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q10.rc_insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q10.insertion_points.overlappers
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q10.rc_insertion_points.rc_overlappers
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q00.insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q00.insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.pre.bowtie2.hg19.Q00.rc_insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.post.bowtie2.hg19.Q00.rc_insertion_points
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q00.insertion_points.overlappers
-SAMPLE.bowtie2.HCMV.__very_sensitive_local.aligned.both.bowtie2.hg19.Q00.rc_insertion_points.rc_overlappers
-```
-
 
 
 
 ##	Docker
+
+Under development...
+
 
 The following "Dockerfile" will create a functioning chimera install.
 
@@ -127,17 +101,5 @@ It will take 5-10 minutes.
 Then run `docker run -ti chimera` to start a new instance or container.
 
 The resulting docker image will be nearly 500MB.
-
-
-
-
-
-## Notes
-
-More descriptive named script chimera_unpaired_local.bash is the same as chimera_insertions_and_overlappers.bash.
-
-
-Deving chimera_paired_local.bash
-
 
 
