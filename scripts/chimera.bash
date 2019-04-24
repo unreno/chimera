@@ -236,8 +236,17 @@ bowtie2 --version
 				#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
 				mv tmpfile.\*.${p}\*.${h}.\*Q${q}\*points.* ${p}_insertion_points.${h}.Q${q}
 
-				chimera_csv_table_group_rows.bash ${p}_insertion_points_table.${h}.Q${q}.csv \
+
+
+				#	chimera_csv_table_group_rows.bash input NEEDS to be sorted
+				head -1 ${p}_insertion_points_table.${h}.Q${q}.csv > ${p}_insertion_points_table.${h}.Q${q}.sorted.csv
+				tail -n +2 ${p}_insertion_points_table.${h}.Q${q}.csv \
+					| sort -t \| -k 1,1 -k 2n,2 >> ${p}_insertion_points_table.${h}.Q${q}.sorted.csv
+
+				chimera_csv_table_group_rows.bash ${p}_insertion_points_table.${h}.Q${q}.sorted.csv \
 					> ${p}_insertion_points_table.${h}.Q${q}.grouped.csv
+
+
 
 				#	this is a TINY bit different as it preserves full file names.
 				chimera_overlappers_to_table.bash \*.${p}\*.${h}.\*Q${q}\*overlappers \
