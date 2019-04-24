@@ -24,7 +24,8 @@ function print_buffer(){
 ( NR > 1 ){
 	split($1,position,"|")
 	if( bufferer_position[1] ){
-		if(( position[1] == bufferer_position[1] ) && ( position[2] < (bufferer_position[2]+10000) )){
+		#if(( position[1] == bufferer_position[1] ) && ( position[2] < (bufferer_position[2]+10000) )){
+		if(( position[1] == bufferer_position[1] ) && ( position[2] < (bufferer_position[2]+10000) ) && ( position[2] >= (bufferer_position[2]) ) ){
 			for(i=2;i<=NF;i++){b[i]+=$i}
 		} else {
 			print_buffer();
