@@ -65,11 +65,11 @@ while [ $# -ne 0 ] ; do
 done
 
 
-[ $# -eq 0 ] && usage
+[ $# -ne 0 ] && usage
 
 #base_dir=$PWD
 
-#working_dir=$PWD
+working_dir=$PWD
 
 #	Print a lot more stuff
 set -x
