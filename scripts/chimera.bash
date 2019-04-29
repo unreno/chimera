@@ -6,7 +6,7 @@ viral='herv_k113'
 human='hg38'
 threads=4
 distance=15
-paired_and_or_unpaired="paired unpaired"
+paired_and_or_unpaired="paired,unpaired"
 #bowtie_viral_params="--bowtie_viral_params '--very-sensitive-local'"
 
 function usage(){
@@ -178,7 +178,7 @@ bowtie2 --version
 			ln -s $fast_2_with_path
 		fi
 
-		for p in $paired_and_or_unpaired ; do
+		for p in ${paired_and_or_unpaired/,/ } ; do
 
 			if [ $p == "paired" ] ; then
 				if [ -z "$bvp1" ] ; then
@@ -217,50 +217,53 @@ bowtie2 --version
 	#	This is kinda important!
 	cd $working_dir
 
-	for q in 20 10 00 ; do
+	chimera_aggregate.bash --human ${human} --paired_unpaired ${paired_and_or_unpaired}
 
-		for p in $paired_and_or_unpaired ; do
-
-			for h in ${human/,/ } ; do
-
-				#	Given that some of our runs were very large, an actual file listing
-				#	was too much for the shell to handle. Had to use a glob pattern that
-				#	will be used by find. This has gotten rather awkward now.
-
-				#	And includes files that shouldn't be included
-
-				chimera_insertion_points_to_table.bash \*.${p}\*.${h}.\*Q${q}\*points \
-					> ${p}_insertion_points_table.${h}.Q${q}.csv
-				#	This script generates a tmpfile that is just a list of ALL the insertion points.
-				#	It is unused, but kept for curiousity.
-				#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
-				mv tmpfile.\*.${p}\*.${h}.\*Q${q}\*points.* ${p}_insertion_points.${h}.Q${q}
-
-
-
-				#	chimera_csv_table_group_rows.bash input NEEDS to be sorted
-				head -1 ${p}_insertion_points_table.${h}.Q${q}.csv > ${p}_insertion_points_table.${h}.Q${q}.sorted.csv
-				tail -n +2 ${p}_insertion_points_table.${h}.Q${q}.csv \
-					| sort -t \| -k 1,1 -k 2n,2 >> ${p}_insertion_points_table.${h}.Q${q}.sorted.csv
-
-				chimera_csv_table_group_rows.bash ${p}_insertion_points_table.${h}.Q${q}.sorted.csv \
-					> ${p}_insertion_points_table.${h}.Q${q}.grouped.csv
-
-
-
-				#	this is a TINY bit different as it preserves full file names.
-				chimera_overlappers_to_table.bash \*.${p}\*.${h}.\*Q${q}\*overlappers \
-					> ${p}_overlappers_table.${h}.Q${q}.csv
-				#	This script generates a tmpfile that is just a list of ALL the insertion points.
-				#	It is unused, but kept for curiousity.
-				#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
-				mv tmpfile.\*.${p}\*.${h}.\*Q${q}\*overlappers.* ${p}_overlappers.${h}.Q${q}
-
-			done	#	human refs, possibly separated by comma "hg19,hg38"
-
-		done	#	paired unpaired
-
-	done	#	20 10 00
+#	for q in 20 10 00 ; do
+#
+##		for p in $paired_and_or_unpaired ; do
+#		for p in ${paired_and_or_unpaired/,/ } ; do
+#
+#			for h in ${human/,/ } ; do
+#
+#				#	Given that some of our runs were very large, an actual file listing
+#				#	was too much for the shell to handle. Had to use a glob pattern that
+#				#	will be used by find. This has gotten rather awkward now.
+#
+#				#	And includes files that shouldn't be included
+#
+#				chimera_insertion_points_to_table.bash \*.${p}\*.${h}.\*Q${q}\*points \
+#					> ${p}_insertion_points_table.${h}.Q${q}.csv
+#				#	This script generates a tmpfile that is just a list of ALL the insertion points.
+#				#	It is unused, but kept for curiousity.
+#				#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
+#				mv tmpfile.\*.${p}\*.${h}.\*Q${q}\*points.* ${p}_insertion_points.${h}.Q${q}
+#
+#
+#
+#				#	chimera_csv_table_group_rows.bash input NEEDS to be sorted
+#				head -1 ${p}_insertion_points_table.${h}.Q${q}.csv > ${p}_insertion_points_table.${h}.Q${q}.sorted.csv
+#				tail -n +2 ${p}_insertion_points_table.${h}.Q${q}.csv \
+#					| sort -t \| -k 1,1 -k 2n,2 >> ${p}_insertion_points_table.${h}.Q${q}.sorted.csv
+#
+#				chimera_csv_table_group_rows.bash ${p}_insertion_points_table.${h}.Q${q}.sorted.csv \
+#					> ${p}_insertion_points_table.${h}.Q${q}.grouped.csv
+#
+#
+#
+#				#	this is a TINY bit different as it preserves full file names.
+#				chimera_overlappers_to_table.bash \*.${p}\*.${h}.\*Q${q}\*overlappers \
+#					> ${p}_overlappers_table.${h}.Q${q}.csv
+#				#	This script generates a tmpfile that is just a list of ALL the insertion points.
+#				#	It is unused, but kept for curiousity.
+#				#	= tmpfile. + EXACTLY AS ABOVE + .* (for timestamp)
+#				mv tmpfile.\*.${p}\*.${h}.\*Q${q}\*overlappers.* ${p}_overlappers.${h}.Q${q}
+#
+#			done	#	human refs, possibly separated by comma "hg19,hg38"
+#
+#		done	#	paired unpaired
+#
+#	done	#	20 10 00
 
 	echo
 	echo "Finished at ..."
