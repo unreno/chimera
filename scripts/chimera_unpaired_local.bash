@@ -131,29 +131,53 @@ echo ":${bowtie_viral_params}:"
 
 		for pre_or_post in pre post ; do
 	
-			#	Align the chimeric reads to the human reference.
-			bowtie2 -x $human_ref --threads $threads -f -U $aligned.$pre_or_post.fasta \
-				-S $aligned.$pre_or_post.bowtie2.$human_ref.sam
-			status=$?
-			if [ $status -ne 0 ] ; then
-				date
-				echo "bowtie failed with $status"
-				exit $status
+			if [ -f $aligned.$pre_or_post.fasta ] ; then
+
+				#	Align the chimeric reads to the human reference.
+				bowtie2 -x $human_ref --threads $threads -f -U $aligned.$pre_or_post.fasta \
+					-S $aligned.$pre_or_post.bowtie2.$human_ref.sam
+				status=$?
+				if [ $status -ne 0 ] ; then
+					date
+					echo "bowtie failed with $status"
+					exit $status
+				fi
+	
+				#	SORT and convert to bam and remove the sam.
+				samtools sort -o $aligned.$pre_or_post.bowtie2.$human_ref.position.bam \
+					$aligned.$pre_or_post.bowtie2.$human_ref.sam
+				rm $aligned.$pre_or_post.bowtie2.$human_ref.sam
+	
+				#	Index now so don't have to before running IGV
+				samtools index $aligned.$pre_or_post.bowtie2.$human_ref.position.bam
+
+			else
+				echo "No $aligned.$pre_or_post.fasta found"
 			fi
-	
-			#	SORT and convert to bam and remove the sam.
-			samtools sort -o $aligned.$pre_or_post.bowtie2.$human_ref.bam \
-				$aligned.$pre_or_post.bowtie2.$human_ref.sam
-			rm $aligned.$pre_or_post.bowtie2.$human_ref.sam
-	
-			#	Index now so don't have to before running IGV
-			samtools index $aligned.$pre_or_post.bowtie2.$human_ref.bam
 	
 		done	#	for pre_or_post in pre post ; do
 	
-		samtools merge $aligned.bowtie2.$human_ref.position.bam \
-			$aligned.pre.bowtie2.$human_ref.position.bam \
-			$aligned.post.bowtie2.$human_ref.position.bam
+		if [ -f $aligned.pre.bowtie2.$human_ref.position.bam -a \
+				 -f $aligned.post.bowtie2.$human_ref.position.bam ] ; then
+
+			samtools merge $aligned.bowtie2.$human_ref.position.bam \
+				$aligned.pre.bowtie2.$human_ref.position.bam \
+				$aligned.post.bowtie2.$human_ref.position.bam
+
+		elif [ -f $aligned.pre.bowtie2.$human_ref.position.bam ] ; then
+
+			cp $aligned.pre.bowtie2.$human_ref.position.bam $aligned.bowtie2.$human_ref.position.bam
+
+		elif [ -f $aligned.post.bowtie2.$human_ref.position.bam ] ; then
+
+			cp $aligned.post.bowtie2.$human_ref.position.bam $aligned.bowtie2.$human_ref.position.bam
+
+		else
+
+			echo "Likely gonna crash. No pre or post found."
+
+		fi
+
 		samtools index $aligned.bowtie2.$human_ref.position.bam
 
 		#	find insertion points
@@ -170,26 +194,50 @@ echo ":${bowtie_viral_params}:"
 		for q in 20 10 00 ; do
 			echo $q
 			mapq="Q${q}"
+
+
+			if [ -f $aligned.pre.bowtie2.$human_ref.position.bam ] ; then
 	
-			samtools view -q $q -F 20 $aligned.pre.bowtie2.$human_ref.bam \
-				| awk '{print $3"|"$4+length($10)}' \
-				| sort > $aligned.pre.bowtie2.$human_ref.$mapq.insertion_points
-			samtools view -q $q -F 20 $aligned.post.bowtie2.$human_ref.bam \
-				| awk '{print $3"|"$4}' \
-				| sort > $aligned.post.bowtie2.$human_ref.$mapq.insertion_points
-			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-				$aligned.*.bowtie2.$human_ref.$mapq.insertion_points \
-				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.insertion_points.overlappers
-	
-			samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human_ref.bam \
-				| awk '{print $3"|"$4}' \
-				| sort > $aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points
-			samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human_ref.bam \
-				| awk '{print $3"|"$4+length($10)}' \
-				| sort > $aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points
-			awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-				$aligned.*.bowtie2.$human_ref.$mapq.rc_insertion_points \
-				| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rc_insertion_points.rc_overlappers
+				samtools view -q $q -F 20 $aligned.pre.bowtie2.$human_ref.position.bam \
+					| awk '{print $3"|"$4+length($10)}' \
+					| sort > $aligned.pre.bowtie2.$human_ref.$mapq.insertion_points
+
+				samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human_ref.position.bam \
+					| awk '{print $3"|"$4}' \
+					| sort > $aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points
+
+			fi
+
+			if [ -f $aligned.post.bowtie2.$human_ref.position.bam ] ; then
+
+				samtools view -q $q -F 20 $aligned.post.bowtie2.$human_ref.position.bam \
+					| awk '{print $3"|"$4}' \
+					| sort > $aligned.post.bowtie2.$human_ref.$mapq.insertion_points
+
+				samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human_ref.position.bam \
+					| awk '{print $3"|"$4+length($10)}' \
+					| sort > $aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points
+
+			fi
+
+
+			if [ -f $aligned.pre.bowtie2.$human_ref.$mapq.insertion_points -a \
+					 -f $aligned.post.bowtie2.$human_ref.$mapq.insertion_points ] ; then
+
+				awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+					$aligned.*.bowtie2.$human_ref.$mapq.insertion_points \
+					| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.insertion_points.overlappers
+
+			fi
+
+			if [ -f $aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points -a \
+					 -f $aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points ] ; then
+
+				awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
+					$aligned.*.bowtie2.$human_ref.$mapq.rc_insertion_points \
+					| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rc_insertion_points.rc_overlappers
+
+			fi
 	
 		done	#	for q in 20 10 00 ; do
 
