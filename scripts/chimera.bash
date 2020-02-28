@@ -134,6 +134,7 @@ bowtie2 --version
 
 		#	strip off any lane?
 		sample_dirname=${sample_dirname%?R1}
+		sample_dirname=${sample_dirname%?r1}
 		sample_dirname=${sample_dirname%.1}
 		sample_dirname=${sample_dirname%_1}
 
