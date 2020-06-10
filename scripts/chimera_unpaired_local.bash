@@ -111,7 +111,7 @@ bowtie2 --version
 	#	Create a string of all files to be passed to bowtie2
 	files=$(echo $* | awk '{printf "-U ";for(i=1;i<NF;i++){printf "%s,",$i};print $NF}')
 
-	base="$base.bowtie2.$viral.very_sensitive_local.unpaired"
+	base="$base.bowtie2.$( basename ${viral} ).very_sensitive_local.unpaired"
 
 
 	#	I think that I can do this in one step.
@@ -128,6 +128,7 @@ echo ":${bowtie_viral_params}:"
 
 
 	for human_ref in ${human/,/ } ; do
+		human_ref_base=$( basename ${human_ref} )
 
 		for pre_or_post in pre post ; do
 	
@@ -135,7 +136,7 @@ echo ":${bowtie_viral_params}:"
 
 				#	Align the chimeric reads to the human reference.
 				bowtie2 -x $human_ref --threads $threads -f -U $aligned.$pre_or_post.fasta \
-					-S $aligned.$pre_or_post.bowtie2.$human_ref.sam
+					-S $aligned.$pre_or_post.bowtie2.${human_ref_base}.sam
 				status=$?
 				if [ $status -ne 0 ] ; then
 					date
@@ -144,12 +145,12 @@ echo ":${bowtie_viral_params}:"
 				fi
 	
 				#	SORT and convert to bam and remove the sam.
-				samtools sort -o $aligned.$pre_or_post.bowtie2.$human_ref.position.bam \
-					$aligned.$pre_or_post.bowtie2.$human_ref.sam
-				rm $aligned.$pre_or_post.bowtie2.$human_ref.sam
+				samtools sort -o $aligned.$pre_or_post.bowtie2.${human_ref_base}.position.bam \
+					$aligned.$pre_or_post.bowtie2.${human_ref_base}.sam
+				rm $aligned.$pre_or_post.bowtie2.${human_ref_base}.sam
 	
 				#	Index now so don't have to before running IGV
-				samtools index $aligned.$pre_or_post.bowtie2.$human_ref.position.bam
+				samtools index $aligned.$pre_or_post.bowtie2.${human_ref_base}.position.bam
 
 			else
 				echo "No $aligned.$pre_or_post.fasta found"
@@ -157,20 +158,20 @@ echo ":${bowtie_viral_params}:"
 	
 		done	#	for pre_or_post in pre post ; do
 	
-		if [ -f $aligned.pre.bowtie2.$human_ref.position.bam -a \
-				 -f $aligned.post.bowtie2.$human_ref.position.bam ] ; then
+		if [ -f $aligned.pre.bowtie2.${human_ref_base}.position.bam -a \
+				 -f $aligned.post.bowtie2.${human_ref_base}.position.bam ] ; then
 
-			samtools merge $aligned.bowtie2.$human_ref.position.bam \
-				$aligned.pre.bowtie2.$human_ref.position.bam \
-				$aligned.post.bowtie2.$human_ref.position.bam
+			samtools merge $aligned.bowtie2.${human_ref_base}.position.bam \
+				$aligned.pre.bowtie2.${human_ref_base}.position.bam \
+				$aligned.post.bowtie2.${human_ref_base}.position.bam
 
-		elif [ -f $aligned.pre.bowtie2.$human_ref.position.bam ] ; then
+		elif [ -f $aligned.pre.bowtie2.${human_ref_base}.position.bam ] ; then
 
-			cp $aligned.pre.bowtie2.$human_ref.position.bam $aligned.bowtie2.$human_ref.position.bam
+			cp $aligned.pre.bowtie2.${human_ref_base}.position.bam $aligned.bowtie2.${human_ref_base}.position.bam
 
-		elif [ -f $aligned.post.bowtie2.$human_ref.position.bam ] ; then
+		elif [ -f $aligned.post.bowtie2.${human_ref_base}.position.bam ] ; then
 
-			cp $aligned.post.bowtie2.$human_ref.position.bam $aligned.bowtie2.$human_ref.position.bam
+			cp $aligned.post.bowtie2.${human_ref_base}.position.bam $aligned.bowtie2.${human_ref_base}.position.bam
 
 		else
 
@@ -178,7 +179,7 @@ echo ":${bowtie_viral_params}:"
 
 		fi
 
-		samtools index $aligned.bowtie2.$human_ref.position.bam
+		samtools index $aligned.bowtie2.${human_ref_base}.position.bam
 
 		#	find insertion points
 		#	then find those with the signature overlap
@@ -196,46 +197,46 @@ echo ":${bowtie_viral_params}:"
 			mapq="Q${q}"
 
 
-			if [ -f $aligned.pre.bowtie2.$human_ref.position.bam ] ; then
+			if [ -f $aligned.pre.bowtie2.${human_ref_base}.position.bam ] ; then
 	
-				samtools view -q $q -F 20 $aligned.pre.bowtie2.$human_ref.position.bam \
+				samtools view -q $q -F 20 $aligned.pre.bowtie2.${human_ref_base}.position.bam \
 					| awk '{print $3"|"$4+length($10)}' \
-					| sort > $aligned.pre.bowtie2.$human_ref.$mapq.insertion_points
+					| sort > $aligned.pre.bowtie2.${human_ref_base}.$mapq.insertion_points
 
-				samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.$human_ref.position.bam \
+				samtools view -q $q -F 4 -f 16 $aligned.pre.bowtie2.${human_ref_base}.position.bam \
 					| awk '{print $3"|"$4}' \
-					| sort > $aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points
+					| sort > $aligned.pre.bowtie2.${human_ref_base}.$mapq.rc_insertion_points
 
 			fi
 
-			if [ -f $aligned.post.bowtie2.$human_ref.position.bam ] ; then
+			if [ -f $aligned.post.bowtie2.${human_ref_base}.position.bam ] ; then
 
-				samtools view -q $q -F 20 $aligned.post.bowtie2.$human_ref.position.bam \
+				samtools view -q $q -F 20 $aligned.post.bowtie2.${human_ref_base}.position.bam \
 					| awk '{print $3"|"$4}' \
-					| sort > $aligned.post.bowtie2.$human_ref.$mapq.insertion_points
+					| sort > $aligned.post.bowtie2.${human_ref_base}.$mapq.insertion_points
 
-				samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.$human_ref.position.bam \
+				samtools view -q $q -F 4 -f 16 $aligned.post.bowtie2.${human_ref_base}.position.bam \
 					| awk '{print $3"|"$4+length($10)}' \
-					| sort > $aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points
+					| sort > $aligned.post.bowtie2.${human_ref_base}.$mapq.rc_insertion_points
 
 			fi
 
 
-			if [ -f $aligned.pre.bowtie2.$human_ref.$mapq.insertion_points -a \
-					 -f $aligned.post.bowtie2.$human_ref.$mapq.insertion_points ] ; then
+			if [ -f $aligned.pre.bowtie2.${human_ref_base}.$mapq.insertion_points -a \
+					 -f $aligned.post.bowtie2.${human_ref_base}.$mapq.insertion_points ] ; then
 
 				awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-					$aligned.*.bowtie2.$human_ref.$mapq.insertion_points \
-					| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.insertion_points.overlappers
+					$aligned.*.bowtie2.${human_ref_base}.$mapq.insertion_points \
+					| sort | uniq -c > $aligned.both.bowtie2.${human_ref_base}.$mapq.insertion_points.overlappers
 
 			fi
 
-			if [ -f $aligned.pre.bowtie2.$human_ref.$mapq.rc_insertion_points -a \
-					 -f $aligned.post.bowtie2.$human_ref.$mapq.rc_insertion_points ] ; then
+			if [ -f $aligned.pre.bowtie2.${human_ref_base}.$mapq.rc_insertion_points -a \
+					 -f $aligned.post.bowtie2.${human_ref_base}.$mapq.rc_insertion_points ] ; then
 
 				awk -v distance=$distance -f $basedir/chimera_positions_within.awk \
-					$aligned.*.bowtie2.$human_ref.$mapq.rc_insertion_points \
-					| sort | uniq -c > $aligned.both.bowtie2.$human_ref.$mapq.rc_insertion_points.rc_overlappers
+					$aligned.*.bowtie2.${human_ref_base}.$mapq.rc_insertion_points \
+					| sort | uniq -c > $aligned.both.bowtie2.${human_ref_base}.$mapq.rc_insertion_points.rc_overlappers
 
 			fi
 	
